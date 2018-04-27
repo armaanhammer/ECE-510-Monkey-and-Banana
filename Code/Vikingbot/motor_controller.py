@@ -1,4 +1,6 @@
 """
+Class methods for controlling the Vikingbot's two wheels.
+
 Original code source from: https://github.com/mlherd/vikingbot
 """
 
