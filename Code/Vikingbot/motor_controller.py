@@ -1,3 +1,7 @@
+"""
+Original code source from: https://github.com/mlherd/vikingbot
+"""
+
 import sys
 import time
 import RPi.GPIO as GPIO
