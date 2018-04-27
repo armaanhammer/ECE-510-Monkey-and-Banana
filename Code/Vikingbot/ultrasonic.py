@@ -1,3 +1,9 @@
+"""
+Class methods for controlling the Vikingbot's HC-SR04 Ultrasonic sensor.
+
+Original code source from: https://github.com/mlherd/vikingbot
+"""
+
 import time
 import RPi.GPIO as GPIO
 class Ultrasonic:
