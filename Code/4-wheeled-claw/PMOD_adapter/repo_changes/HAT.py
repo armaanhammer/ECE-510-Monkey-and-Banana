@@ -16,6 +16,7 @@ from DesignSpark.Pmod import DHB1
 from DesignSpark.Pmod import ISNS20
 from DesignSpark.Pmod import OLEDrgb
 from DesignSpark.Pmod import Error
+from DesignSpark.Pmod import CON3
 
 # Physical pin map of Pmod to BCM I/O
 
@@ -65,7 +66,8 @@ moduleDict = {
     'HB3': HB3,
     'DHB1': DHB1,
     'ISNS20': ISNS20,
-    'OLEDrgb': OLEDrgb
+    'OLEDrgb': OLEDrgb,
+    'CON3': CON3
     }
 
 capabilityDict = {
@@ -177,6 +179,9 @@ def createPmod(moduleName, portName):
         
         if moduleName == 'OLEDrgb':
             return OLEDrgb.PmodOLEDrgb(port)
+
+        if moduleName == 'CON3':
+            return CON3.PmodCON3(port)
         
     
 class DSPMod6:
