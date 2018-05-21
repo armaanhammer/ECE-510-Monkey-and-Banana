@@ -56,6 +56,18 @@ class PmodDHB1:
         self.direction1 = STOPPED 
         self.direction2 = STOPPED 
         
+    def forward(self, duty):
+        self.forward1(duty)
+        self.forward2(duty)
+
+    def reverse(self, duty):
+        self.reverse1(duty)
+        self.reverse2(duty)
+
+    def stop(self):
+        self.stop1()
+        self.stop2()
+
     def forward1(self,duty):
         if self.direction1 == STOPPED or self.direction1 == FORWARD:
             gpio.output(self.dir1, gpio.HIGH)
