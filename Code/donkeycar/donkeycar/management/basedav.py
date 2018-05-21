@@ -4,6 +4,7 @@ import os
 import socket
 import shutil
 import argparse
+import time
 
 import donkeycar as dk
 from donkeycar.parts.datastore import Tub
@@ -156,6 +157,7 @@ class TestCar(BaseCommand):
 
     def parse_args(self, args):
         parser = argparse.ArgumentParser(prog='test', usage='%(prog)s [options]')
+		print("Channel 0 for Throttle / Channel 1 for Steering")
         parser.add_argument('--channel', help='The channel youd like to calibrate [0-15]')
         parsed_args = parser.parse_args(args)
         return parsed_args
