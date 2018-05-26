@@ -73,7 +73,7 @@ class ClawRobot:
 
 
 if __name__ == '__main__':
-    my_robot = ClawRobot(motors1_port='JA', motors2_port='JB', servos_port='JCB')
+    my_robot = ClawRobot(motors1_port='JC', motors2_port='JB', servos_port='JAB')
 
     for i in range(4):
         print('I am closing my claw')
