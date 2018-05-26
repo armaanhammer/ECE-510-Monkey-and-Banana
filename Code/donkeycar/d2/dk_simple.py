@@ -52,6 +52,10 @@ class DK_Simple():
 
         self.steering_controller.set_pulse(angle)
         self.throttle_controller.set_pulse(power)
+        sleep(0.1)
+        self.throttle_controller.set_pulse(self.cfg.THROTTLE_STOPPED_PWM)
+        sleep(0.1)
+        self.throttle_controller.set_pulse(power)
         sleep(delay)
         self.throttle_controller.set_pulse(self.cfg.THROTTLE_STOPPED_PWM)
         self.steering_controller.set_pulse(self.cfg.STEERING_CENTER_PWM)
