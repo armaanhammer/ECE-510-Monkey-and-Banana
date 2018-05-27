@@ -1,5 +1,7 @@
-#i have tweaked with this file a little so you may want to go through the code and see line 140 in particular
-#if you want to run the code then change the other file too i have attached my other file too so you may know what to change
+# found at: https://github.com/khansaadbinhasan/Aruco-Detection
+
+# I had to change a fair amount of things, including working around a divide-by-zero problem.
+
 ############## Task1.1 - ArUco Detection ##############
 
 import numpy as np
@@ -21,7 +23,6 @@ def detect_ArUco(img):
     
     Detected_ArUco_markers = {}
     
-    ## enter your code here ##
     gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
     aruco_dict = aruco.Dictionary_get(cv2.aruco.DICT_ARUCO_ORIGINAL)
     parameters = aruco.DetectorParameters_create()
@@ -45,7 +46,7 @@ def Calculate_orientation_in_degree(Detected_ArUco_markers):
     ##            function should return: {1: 120 , 2: 164}
     
     ArUco_marker_angles = {}
-    ## enter your code here ##
+
     for ids in Detected_ArUco_markers:
         for corner in Detected_ArUco_markers[ids]:
             topListx = []
