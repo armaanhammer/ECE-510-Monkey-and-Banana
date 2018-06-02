@@ -32,6 +32,7 @@ def getAngleAndDist(robot_info, goal_info):
     if(len(robot_info) != 3 or len(goal_info) != 3):
         print('Error: not enough information or info format not as expected')
         return
+
     angle_diff = goal_info[0] - robot_info[0] #Find difference between robot and goal angles
     x_diff = abs(goal_info[1] - robot_info[1]) #Get the differences between x and y coordinates
     y_diff = abs(goal_info[2] - robot_info[2])
