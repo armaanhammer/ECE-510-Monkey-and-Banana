@@ -15,7 +15,7 @@ def get_args():
 
     parser.add_argument(
             '--port',
-            default=5000,
+            default=5001,
             type=int,
             help='port used to communicate to the clawrobot')
 
@@ -72,47 +72,52 @@ def command_processor(data, my_clawrobot):
         'close',
         'left',
         'right',
-        'move_forward',
-        'go'
-        'move_backward',
+        'forward',
+        'go',
+        'backward',
         'reverse',
+        'test',
     ]
     
     if command == 'open':
         print('Opening claw...')
         my_clawrobot.open_claw()
-        return ('Opened claw' )
+        return ('Opened claw')
 
     elif command == 'close':
         print('Closing claw...')
         my_clawrobot.close_claw()
         return ('Closed claw')
 
+    elif command == 'test':
+        print('test')
+        return('test finished')
+
     elif command == 'left':
         for i in range(iteration):
             print('turning left...')
-            my_clawrobot.left(delay=2, power=50)
+            my_clawrobot.left()
 
         return ('Turning Left {} times'.format(iteration))
 
     elif command == 'right':
         for i in range(iteration):
             print('turning right...')
-            my_clawrobot.right(delay=2, power=50)
+            my_clawrobot.right()
 
         return ('Turning Right {} times'.format(iteration))
 
-    elif command == 'move_forward' or command == 'go':
+    elif command == 'forward' or command == 'go':
         for i in range(iteration):
             print('moving forwards...')
-            my_clawrobot.forward(delay=2, power=50)
+            my_clawrobot.forward()
 
         return ('Moved Forward {} times'.format(iteration))
 
-    elif command == 'move_backward' or command == 'reverse':
+    elif command == 'backward' or command == 'reverse':
         for i in range(iteration):
             print('moving backwards...')
-            my_clawrobot.reverse(delay=2, power=50)
+            my_clawrobot.reverse()
 
         return ('Moved Backward {} times'.format(iteration))
 
