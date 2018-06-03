@@ -17,9 +17,12 @@ tvecs_orig = d['tvecs']
 dictionary = aruco.getPredefinedDictionary(aruco.DICT_ARUCO_ORIGINAL)
 
 cap = cv2.VideoCapture(1)
-cap.set(cv2.CAP_PROP_AUTOFOCUS, 0) # turn off autofocus
+# cap.set(cv2.CAP_PROP_AUTOFOCUS, 0) # turn off autofocus
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
+cap.set(cv2.CAP_PROP_SETTINGS, 1)
+
+print(cap.get(cv2.CAP_PROP_AUTOFOCUS))
 
 count = 0
 while cap.isOpened():
