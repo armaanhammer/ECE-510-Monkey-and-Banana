@@ -4,6 +4,10 @@ import cv2.aruco as aruco
 import time
 import yaml
 
+# Input:    yaml.load
+
+# Outputs:  camera_calibration_results.yml  <  contains all data
+#           camera_matrix.yml               <  contains on cameraMatrix
 
 with open('result.yml', 'r') as yaml_file:
     d = yaml.load(yaml_file)
@@ -17,6 +21,7 @@ imsize = d['imsize']
 
 # Calibration fails for lots of reasons.  Release the video if we do
 try:
+    print('Starting calibration')
     cal = aruco.calibrateCameraCharuco(allCorners, allIds, board, imsize, None, None)
     print('Successfully calibrated the camera!!!')
     
@@ -30,8 +35,13 @@ try:
         'tvecs': tvecs
     }
     
+    print(cameraMatrix)
+    
     with open('camera_calibration_results.yml', 'w') as yaml_file:
         yaml.dump(d, yaml_file, default_flow_style=False)
+        
+    with open('camera_matrix.yml', 'w') as yaml_file:
+        yaml.dump(cameraMatrix, yaml_file, default_flow_style=False)
         
 except:
     print('ERROR: Could not calibrate camera')
