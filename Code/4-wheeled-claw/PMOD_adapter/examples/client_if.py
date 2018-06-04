@@ -51,7 +51,7 @@ def Main(host, port, script):
                     print('Recieved from server: ' + data)
 
         else:
-            message = raw_input("cmd: ")
+            message = raw_input("cmd: ")   # remove "raw_" for python3
 
             while message != 'q':
                 if message:
@@ -60,7 +60,7 @@ def Main(host, port, script):
 
                     print ('Received from server: ' + data)
 
-                message = raw_input("cmd: ")
+                message = raw_input("cmd: ")   # remove "raw_" for python3
 
         mySocket.close()
 
