@@ -2,6 +2,9 @@
 """
 Created on Wed Jun  6 19:22:06 2018
 
+First test to verify we can query Prolog and tell the robot where to go based
+on the results of the query.
+
 @author: etcyl
 """
 
