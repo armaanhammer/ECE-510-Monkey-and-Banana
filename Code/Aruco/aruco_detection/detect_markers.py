@@ -8,8 +8,6 @@ import matplotlib.pyplot as plt
 length = 0.04 # length of marker side
 count = 0
 
-objLocations = [[]]
-
 
 with open('camera_calibration_results.yml', 'r') as yaml_file:
     d = yaml.load(yaml_file)
@@ -79,19 +77,20 @@ while cap.isOpened():
         rvecs, tvecs, obj_points = aruco.estimatePoseSingleMarkers \
         (corners, length, cameraMatrix, distCoeffs)
         
-        i=0
+        objU = []
+        objV = []
         for rvec, tvec in zip(rvecs, tvecs):
             aruco.drawAxis(frame, cameraMatrix, distCoeffs, rvec, tvec, length)
             
             # Populate object locations
             imgPoints, _ = cv2.projectPoints(axisPoints, rvec, tvec, cameraMatrix, distCoeffs)
-            objLocations[i] = [imgPoints[0][0][0],imgPoints[0][0][1]], \
-                              [imgPoints[1][0][0],imgPoints[1][0][1]]
-            test = np.array(objLocations)
-            print('reached here')
-            i = i+1
+            objU.append([imgPoints[0][0][0],imgPoints[0][0][1]])
+            objV.append([imgPoints[1][0][0],imgPoints[1][0][1]])
+            testU = np.array(objU)
+            testV = np.array(objV)
+            #print('reached here')
             
-            print(test)
+            #print(testU)
             
 
 
@@ -113,7 +112,7 @@ while cap.isOpened():
         cv2.imshow('frame', frame)
         count += 1
         
-        ax.quiver([0], [0], test[:,0], test[:,1])
+        ax.quiver([0,0],[0,0], objU, objV)
         #plt.xlim(0, width)
         #plt.ylim(0, height)
         #plt.show('test', test)
