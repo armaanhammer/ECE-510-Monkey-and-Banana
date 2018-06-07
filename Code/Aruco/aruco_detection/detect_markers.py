@@ -3,7 +3,10 @@ import cv2
 import cv2.aruco as aruco
 import time
 import yaml
+import matplotlib.pyplot as plt
 
+
+count = 0
 
 with open('camera_calibration_results.yml', 'r') as yaml_file:
     d = yaml.load(yaml_file)
@@ -16,7 +19,7 @@ tvecs_orig = d['tvecs']
 
 dictionary = aruco.getPredefinedDictionary(aruco.DICT_ARUCO_ORIGINAL)
 
-cap = cv2.VideoCapture(1)
+cap = cv2.VideoCapture(0)
 # cap.set(cv2.CAP_PROP_AUTOFOCUS, 0) # turn off autofocus
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
@@ -30,6 +33,15 @@ width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
 autofocus = cap.set(cv2.CAP_PROP_AUTOFOCUS, 0) # turn off autofocus
 print(autofocus)
 print(cap.get(cv2.CAP_PROP_AUTOFOCUS))
+
+def find_center(cnrs):
+  x = cnrs[0][0][0] + cnrs[0][1][0] + cnrs[0][2][0] + cnrs[0][3][0]
+  x = x/4
+  print(x)
+  y = cnrs[0][0][1] + cnrs[0][1][1] + cnrs[0][2][1] + cnrs[0][3][1]
+  y = y/4
+  print(y)
+  return([x,y])
 
 while cap.isOpened():
     flags, frame = cap.read()
@@ -47,16 +59,24 @@ while cap.isOpened():
         
         for rvec, tvec in zip(rvecs, tvecs):
             aruco.drawAxis(frame, cameraMatrix, distCoeffs, rvec, tvec, 0.04)
+            
+        # print(rvec)
+        find_center(corners[0])
+        # print(obj_points)
+
 
     if count > 10:
         count = 0
     else:
         cv2.imshow('frame', frame)
-        count += 1            
+        count += 1       
+        
+    
     
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
         
+    
     
         
 cap.release()
