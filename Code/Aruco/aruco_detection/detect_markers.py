@@ -16,17 +16,20 @@ tvecs_orig = d['tvecs']
 
 dictionary = aruco.getPredefinedDictionary(aruco.DICT_ARUCO_ORIGINAL)
 
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(1)
 # cap.set(cv2.CAP_PROP_AUTOFOCUS, 0) # turn off autofocus
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
+cap.set(cv2.CAP_PROP_SETTINGS, 1)
 
-width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+# is it set correctly?
 height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
 
-
-
+# wtf autofocus?
 autofocus = cap.set(cv2.CAP_PROP_AUTOFOCUS, 0) # turn off autofocus
 print(autofocus)
-
+print(cap.get(cv2.CAP_PROP_AUTOFOCUS))
 
 while cap.isOpened():
     flags, frame = cap.read()
@@ -35,7 +38,7 @@ while cap.isOpened():
     new_image = None
     
     if len(corners)>0:
-        print('Detected markers')
+        # print('Detected markers')
         
         aruco.drawDetectedMarkers(frame, corners, ids)
         
@@ -45,9 +48,16 @@ while cap.isOpened():
         for rvec, tvec in zip(rvecs, tvecs):
             aruco.drawAxis(frame, cameraMatrix, distCoeffs, rvec, tvec, 0.04)
 
-    cv2.imshow('frame', frame)
+    if count > 10:
+        count = 0
+    else:
+        cv2.imshow('frame', frame)
+        count += 1            
+    
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
+        
+    
         
 cap.release()
 cv2.destroyAllWindows()
