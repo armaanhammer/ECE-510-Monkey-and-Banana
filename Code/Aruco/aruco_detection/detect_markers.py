@@ -5,7 +5,7 @@ import time
 import yaml
 import matplotlib.pyplot as plt
 
-
+length = 0.04 # length of marker side
 count = 0
 
 with open('camera_calibration_results.yml', 'r') as yaml_file:
@@ -20,7 +20,6 @@ tvecs_orig = d['tvecs']
 dictionary = aruco.getPredefinedDictionary(aruco.DICT_ARUCO_ORIGINAL)
 
 cap = cv2.VideoCapture(0)
-# cap.set(cv2.CAP_PROP_AUTOFOCUS, 0) # turn off autofocus
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
 cap.set(cv2.CAP_PROP_SETTINGS, 1)
@@ -34,6 +33,10 @@ autofocus = cap.set(cv2.CAP_PROP_AUTOFOCUS, 0) # turn off autofocus
 print(autofocus)
 print(cap.get(cv2.CAP_PROP_AUTOFOCUS))
 
+
+axisPoints = np.array([[0,0,0],[length,0,0],[0,length,0],[0,0,length]])
+
+
 def find_center(cnrs):
   x = cnrs[0][0][0] + cnrs[0][1][0] + cnrs[0][2][0] + cnrs[0][3][0]
   x = x/4
@@ -42,6 +45,11 @@ def find_center(cnrs):
   y = y/4
   print(y)
   return([x,y])
+  
+  
+def find_front(crns):
+  pass
+
 
 while cap.isOpened():
     flags, frame = cap.read()
@@ -55,13 +63,23 @@ while cap.isOpened():
         aruco.drawDetectedMarkers(frame, corners, ids)
         
         rvecs, tvecs, obj_points = aruco.estimatePoseSingleMarkers \
-        (corners, 0.04, cameraMatrix, distCoeffs)
+        (corners, length, cameraMatrix, distCoeffs)
         
         for rvec, tvec in zip(rvecs, tvecs):
-            aruco.drawAxis(frame, cameraMatrix, distCoeffs, rvec, tvec, 0.04)
-            
-        # print(rvec)
-        find_center(corners[0])
+            aruco.drawAxis(frame, cameraMatrix, distCoeffs, rvec, tvec, length)
+        
+            imagePoints, _ = cv2.projectPoints(axisPoints, rvec, tvec, cameraMatrix, distCoeffs)
+
+
+        print(imagePoints)
+        print('_____________')
+# =============================================================================
+#         for cornVar in corners:
+#           find_center
+#         
+#         for var in len(corners)
+#         find_center(corners[0])
+# =============================================================================
         # print(obj_points)
 
 
