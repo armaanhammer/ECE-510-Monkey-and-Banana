@@ -16,8 +16,17 @@ tvecs_orig = d['tvecs']
 
 dictionary = aruco.getPredefinedDictionary(aruco.DICT_ARUCO_ORIGINAL)
 
-cap = cv2.VideoCapture(1)
-cap.set(cv2.CAP_PROP_AUTOFOCUS, 0) # turn off autofocus
+cap = cv2.VideoCapture(0)
+# cap.set(cv2.CAP_PROP_AUTOFOCUS, 0) # turn off autofocus
+
+width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+
+
+
+autofocus = cap.set(cv2.CAP_PROP_AUTOFOCUS, 0) # turn off autofocus
+print(autofocus)
+
 
 while cap.isOpened():
     flags, frame = cap.read()
@@ -30,7 +39,8 @@ while cap.isOpened():
         
         aruco.drawDetectedMarkers(frame, corners, ids)
         
-        rvecs, tvecs, obj_points = aruco.estimatePoseSingleMarkers(corners, 0.04, cameraMatrix, distCoeffs)
+        rvecs, tvecs, obj_points = aruco.estimatePoseSingleMarkers \
+        (corners, 0.04, cameraMatrix, distCoeffs)
         
         for rvec, tvec in zip(rvecs, tvecs):
             aruco.drawAxis(frame, cameraMatrix, distCoeffs, rvec, tvec, 0.04)
