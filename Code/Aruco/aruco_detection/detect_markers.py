@@ -9,19 +9,15 @@ length = 0.04 # length of marker side
 count = 0
 max_count = 10
 
-CAN_ID = 481
-CLAW_ROBOT_ID = 880
+CAN_ID = 880
+CLAW_ROBOT_ID = 481
 
 can = {
     'id': CAN_ID,
-    'position': [0, 0],
-    'front': [0,0]
 }
 
 claw_robot = {
     'id': CLAW_ROBOT_ID,
-    'position': [0, 0],
-    'front': [0, 0]
 }
 
 def read_calibration_data(file):
@@ -41,9 +37,12 @@ def read_calibration_data(file):
 
 dictionary = aruco.getPredefinedDictionary(aruco.DICT_ARUCO_ORIGINAL)
 
-cap = cv2.VideoCapture(1)
-cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
-cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
+cap = cv2.VideoCapture(0)
+# cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
+# cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 720)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+
 # cap.set(cv2.CAP_PROP_SETTINGS, 1)
 
 # is it set correctly?
@@ -60,7 +59,9 @@ axisPoints = np.array([[0,0,0],[length,0,0],[0,length,0],[0,0,length]])
 
 def get_angle(center, end):
     x = end[0] - center[0]
-    y = end[1] - center[1]
+    # y = end[1] - center[1]
+    # x = center[0] - end[0]
+    y = center[1] - end[1]
 
     abs_x = np.absolute(x)
     abs_y = np.absolute(y)
@@ -83,6 +84,10 @@ def get_angle(center, end):
 
     angle = angle * (180/np.pi)
 
+    # if angle >= 180:
+    #     angle = angle - 180
+    # else:
+    #     angle = angle + 180
     return angle
 
 def draw_vectors(frame, centers, centers_2, ends):
@@ -175,10 +180,13 @@ while cap.isOpened():
                 # print('Found the can!!!')
                 can['position'] = center
                 can['front'] = front
+                can['angle'] = get_angle(center, front)
+
             elif id == CLAW_ROBOT_ID:
                 # print('Found the claw robot!!!')
                 claw_robot['position'] = center
                 claw_robot['front'] = front
+                claw_robot['angle'] = get_angle(center, front)
             else:
                 print('Found an unknown object with ID: {}'.format(id))
                 
@@ -188,33 +196,35 @@ while cap.isOpened():
             # print()
             
 
+    print(10*'-')
+    if 'id' in can.keys():
+        print('{} ID: {}'.format('CAN', can['id']))
 
-# =============================================================================
-#         print(imagePoints)
-#         print('_____________')
-#         for cornVar in corners:
-#           find_center
-#         
-#         for var in len(corners)
-#         find_center(corners[0])
-#         # print(obj_points)
-# =============================================================================
+    if 'position' in can.keys():
+        print('{} position: {}'.format('CAN', can['position']))
 
+    if 'angle' in can.keys():
+        print('{} angle: {}'.format('CAN', can['angle']))
+
+    print(10*'-')
+
+    if 'id' in claw_robot.keys():
+        print('{} ID: {}'.format('CLAW', claw_robot['id']))
+
+    if 'position' in claw_robot.keys():
+        print('{} position: {}'.format('CLAW', claw_robot['position']))
+
+    if 'angle' in claw_robot.keys():
+        print('{} angle: {}'.format('CLAW', claw_robot['angle']))
+
+    print(10*'-')
 
     if count > 10:
         count = 0
     else:
         cv2.imshow('frame', frame)
         count += 1
-        
-        # if objU and objV:
-        #     ax.quiver([0,0],[0,0], objU, objV)
-        # plt.xlim(0, width)
-        # plt.ylim(0, height)
-        # plt.show('test', test)
-        # plt.show()
-    
-    
+   
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
         
