@@ -10,7 +10,7 @@ def get_args():
 
     parser.add_argument(
             '--host',
-            default='192.168.0.104',
+            default='192.168.0.100',
             help='host ip of the clawrobot')
 
     parser.add_argument(
@@ -19,37 +19,20 @@ def get_args():
             type=int,
             help='port used to communicate to the clawrobot')
 
-    # parser.add_argument(
-            # '-c',
-            # '--config_file',
-            # default='config_12DOF.yaml',
-            # help='clawrobot configuration file')
-    
     return parser.parse_args()
 
 #def initialize_clawrobot(config_file):
 def initialize_clawrobot():
     my_clawrobot = ClawRobot(motors1_port='JC', motors2_port='JB', servos_port='JAB')
+    my_clawrobot.stop()
     
-    # # open config file
-    # with open(config_file) as f:
-        # my_config = yaml.load(f)
-
-    # if config_file == 'config_12DOF.yaml':
-        # my_clawrobot = clawrobot_12DOF(my_config)
-        # my_clawrobot.initial_tests()
-        
-    # elif config_file == 'config_18DOF.yaml':
-        # my_clawrobot = clawrobot_18DOF(my_config)
-        # my_clawrobot.initial_tests()
-        
-    # else:
-        # print('ERROR: Cannot recognize the config file!!!')
-
     return my_clawrobot
 
 
 def command_processor(data, my_clawrobot):
+    delay = 0.1
+    power = 50
+
     print('Data: {}'.format(data))
 
     items = data.split()
@@ -77,6 +60,7 @@ def command_processor(data, my_clawrobot):
         'backward',
         'reverse',
         'test',
+        'stop',
     ]
     
     if command == 'open':
@@ -89,6 +73,11 @@ def command_processor(data, my_clawrobot):
         my_clawrobot.close_claw()
         return ('Closed claw')
 
+    elif command == '' or command == 'stop':
+        print('Stopping')
+        my_clawrobot.stop()
+        return ('Stopped')
+
     elif command == 'test':
         print('test')
         return('test finished')
@@ -96,28 +85,28 @@ def command_processor(data, my_clawrobot):
     elif command == 'left':
         for i in range(iteration):
             print('turning left...')
-            my_clawrobot.left()
+            my_clawrobot.left(delay=delay, power=power)
 
         return ('Turning Left {} times'.format(iteration))
 
     elif command == 'right':
         for i in range(iteration):
             print('turning right...')
-            my_clawrobot.right()
+            my_clawrobot.right(delay=delay, power=power)
 
         return ('Turning Right {} times'.format(iteration))
 
     elif command == 'forward' or command == 'go':
         for i in range(iteration):
             print('moving forwards...')
-            my_clawrobot.forward()
+            my_clawrobot.forward(delay=delay, power=power)
 
         return ('Moved Forward {} times'.format(iteration))
 
     elif command == 'backward' or command == 'reverse':
         for i in range(iteration):
             print('moving backwards...')
-            my_clawrobot.reverse()
+            my_clawrobot.reverse(delay=delay, power=power)
 
         return ('Moved Backward {} times'.format(iteration))
 
@@ -159,18 +148,23 @@ def Main(host, port):
     mySocket.bind((host,port))
      
     mySocket.listen(5)
-    while True:
-        client, address = mySocket.accept()
-        client.settimeout(300)
-        print ("Connection from: " + str(address))
-        listenToClient(client, address, my_clawrobot)
+
+    try:
+        while True:
+            client, address = mySocket.accept()
+            client.settimeout(300)
+            print ("Connection from: " + str(address))
+            listenToClient(client, address, my_clawrobot)
+
+    except KeyboardInterrupt as e:
+        print('\nyou cancelled the operation.')
+    finally:
+        mySocket.close()
      
 if __name__ == '__main__':
     args = get_args()
 
     print('Host: {}'.format(args.host))
     print('Port: {}'.format(args.port))
-    #print('Config File: {}'.format(args.config_file))
-
-    #Main(args.host, args.port, args.config_file)
+    
     Main(args.host, args.port)

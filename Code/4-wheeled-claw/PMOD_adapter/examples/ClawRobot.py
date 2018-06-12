@@ -8,8 +8,8 @@ import RPi.GPIO as gpio
 from DesignSpark.Pmod.HAT import createPmod
 import time
 
-CLAW_OPEN = 50
-CLAW_CLOSED = 10
+CLAW_OPEN = 9
+CLAW_CLOSED = 6
 
 gpio.setwarnings(False)
 
@@ -29,6 +29,10 @@ class ClawRobot:
 
     def close_claw(self):
         self.servos.set_servo1(CLAW_CLOSED)
+
+    def stop(self):
+        self.motors1.stop()
+        self.motors2.stop()
 
     def forward(self, delay=2, power=50):
         self.motors1.forward(power)
