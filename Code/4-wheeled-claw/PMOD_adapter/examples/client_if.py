@@ -9,7 +9,7 @@ def get_args():
 
     parser.add_argument(
             '--host',
-            default='192.168.0.104',
+            default='192.168.0.100',
             help='host ip of the claw')
 
     parser.add_argument(
@@ -51,7 +51,7 @@ def Main(host, port, script):
                     print('Recieved from server: ' + data)
 
         else:
-            message = raw_input("cmd: ")   # remove "raw_" for python3
+            message = input("cmd: ")   # remove "raw_" for python3
 
             while message != 'q':
                 if message:
@@ -60,7 +60,7 @@ def Main(host, port, script):
 
                     print ('Received from server: ' + data)
 
-                message = raw_input("cmd: ")   # remove "raw_" for python3
+                message = input("cmd: ")   # remove "raw_" for python3
 
         mySocket.close()
 
