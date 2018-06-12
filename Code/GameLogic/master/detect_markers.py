@@ -250,7 +250,7 @@ def send_command(socket, message):
 
 def update_claw(claw_to_can_distance, claw_to_can_angle, mySocket, move_robot=True):
     angle_buffer = 10
-    max_distance = 75
+    max_distance = 50
 
     largest_angle = 360 - (angle_buffer/2)
     smallest_angle = (angle_buffer/2)
