@@ -8,8 +8,8 @@ import RPi.GPIO as gpio
 from DesignSpark.Pmod.HAT import createPmod
 import time
 
-CLAW_OPEN = 9
-CLAW_CLOSED = 6
+CLAW_OPEN = 10
+CLAW_CLOSED = 7
 
 gpio.setwarnings(False)
 

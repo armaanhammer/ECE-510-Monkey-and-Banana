@@ -31,24 +31,29 @@ def initialize_clawrobot():
 
 def command_processor(data, my_clawrobot):
     delay = 0.1
-    power = 50
+    power = 75
 
     print('Data: {}'.format(data))
 
     items = data.split()
     if len(items) == 1:
         command = items[0]
-        iteration = 1
 
     elif len(items) == 2:
         command = items[0]
-        iteration = int(items[1])
+        delay = float(items[1])
+
+    elif len(items) == 3:
+        command = items[0]
+        delay = float(items[1])
+        power = int(items[2])
 
     else:
         return 'ERROR: invalid command format'
 
     print('Command: {}'.format(command))
-    print('Iteration: {}'.format(iteration))
+    print('Delay: {}'.format(delay))
+    print('Power: {}'.format(power))
 
     commands = [
         'open',
@@ -83,32 +88,28 @@ def command_processor(data, my_clawrobot):
         return('test finished')
 
     elif command == 'left':
-        for i in range(iteration):
-            print('turning left...')
-            my_clawrobot.left(delay=delay, power=power)
+        print('turning left...')
+        my_clawrobot.left(delay=delay, power=power)
 
-        return ('Turning Left {} times'.format(iteration))
+        return ('Turned Left')
 
     elif command == 'right':
-        for i in range(iteration):
-            print('turning right...')
-            my_clawrobot.right(delay=delay, power=power)
+        print('turning right...')
+        my_clawrobot.right(delay=delay, power=power)
 
-        return ('Turning Right {} times'.format(iteration))
+        return ('Turned Right')
 
     elif command == 'forward' or command == 'go':
-        for i in range(iteration):
-            print('moving forwards...')
-            my_clawrobot.forward(delay=delay, power=power)
+        print('moving forwards...')
+        my_clawrobot.forward(delay=delay, power=power)
 
-        return ('Moved Forward {} times'.format(iteration))
+        return ('Moved Forward')
 
     elif command == 'backward' or command == 'reverse':
-        for i in range(iteration):
-            print('moving backwards...')
-            my_clawrobot.reverse(delay=delay, power=power)
+        print('moving backwards...')
+        my_clawrobot.reverse(delay=delay, power=power)
 
-        return ('Moved Backward {} times'.format(iteration))
+        return ('Moved Backward')
 
     elif command == 'commands':
         temp = 'Implemented Commands: '
