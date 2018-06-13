@@ -3,7 +3,7 @@ import cv2.aruco as aruco
 from random import randint
 
 
-size = 100
+size = 200
 num_markers = 5
 ids = []
 
