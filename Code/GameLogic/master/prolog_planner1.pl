@@ -10,25 +10,12 @@
 
 
 stop_and_close(Claw_to_can_theta, Claw_to_can_distance, Max_angle, Min_angle, Max_distance) :-
-/* move_forward_and_open(Claw_to_can_theta, Claw_to_can_distance, Max_angle, Min_angle, Max_distance) :- */
 			(Claw_to_can_theta > Max_angle; Claw_to_can_theta < Min_angle),
 			Claw_to_can_distance < Max_distance.
 
 move_forward_and_open(Claw_to_can_theta, Claw_to_can_distance, Max_angle, Min_angle, Max_distance) :-
-/* stop_and_close(Claw_to_can_theta, Claw_to_can_distance, Max_angle, Min_angle, Max_distance) :- */
 			(Claw_to_can_theta > Max_angle; Claw_to_can_theta < Min_angle),
 			Claw_to_can_distance > Max_distance.
-
-/*			
-# move_forward_and_open(Claw_to_can_theta, Claw_to_can_distance, Max_angle, Min_angle, Max_distance) :-
-# 			Claw_to_can_theta < Min_angle,
-# 			Claw_to_can_distance > Max_angle.
-
-			
-# stop_and_close(Claw_to_can_theta, Claw_to_can_distance, Max_angle, Min_angle, Max_distance) :-
-# 			Claw_to_can_theta < Min_angle, 
-# 			Claw_to_can_distance < Max_distance.
-*/
 
 can_move_left(Claw_to_can, Threshold_angle) :-
 			Claw_to_can > Threshold_angle.
