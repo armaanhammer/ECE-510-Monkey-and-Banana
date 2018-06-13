@@ -9,12 +9,21 @@ import time
 import yaml
 from pyswip import Prolog
 
+# Prolog instance and input rules file
 prolog = Prolog()
 prolog.consult('prolog_planner1.pl')
 
+# Aruco marker IDs for various scene objects
 CAN_ID = 880
+
 CLAW_ROBOT_ID = 481
 
+TOP_RIGHT_RAMP_ID = 818
+TOP_LEFT_RAMP_ID = 58
+BOTTOM_RIGHT_RAMP_ID = 209
+BOTTOM_LEFT_RAMP_ID = 839
+
+# Scene Objects dictionary
 scene_objects = {
     'can': {
         'name': 'CAN',
@@ -23,10 +32,32 @@ scene_objects = {
     'claw': {
         'name': 'CLAW',
         'id': CLAW_ROBOT_ID,
+    },
+    'ramp': {
+        'name': 'RAMP',
+        'markers': [
+            {
+                'name': 'top_right',
+                'id': TOP_RIGHT_RAMP_ID,
+            },
+            {
+                'name': 'top_left',
+                'id': TOP_LEFT_RAMP_ID,
+            },
+            {
+                'name': 'bottom_right',
+                'id': BOTTOM_RIGHT_RAMP_ID, 
+            },
+            {
+                'name': 'bottom_left',
+                'id': BOTTOM_LEFT_RAMP_ID,
+            },
+        ]
     }
 }
 
 
+# Command Line Arguements Parser
 def get_args():
     parser = argparse.ArgumentParser(description='claw client.')
 
@@ -51,6 +82,7 @@ def get_args():
     return parser.parse_args()
 
 
+# Read the camera calibration data
 def read_calibration_data(file):
     ret_val = []
     with open(file, 'r') as yaml_file:
@@ -65,18 +97,24 @@ def read_calibration_data(file):
     return ret_val
 
 
-def get_distance(center, end):
-    x = end[0] - center[0]
-    y = center[1] - end[1]
+def get_distance(pt1, pt2):
+    # X-direction is positive (increase when going from left to right) for both image and cartesian coordinates
+    x = pt2[0] - pt1[0]
+
+    # Y-direction is negative (increases going down the frame) for the image coordinates
+    # and is positive (increases going up the frame) for the cartesian coordinates
+    y = pt1[1] - pt2[1]
     distance = math.sqrt(x**2 + y**2)
     return distance
 
 
-def get_angle(center, end):
-    x = end[0] - center[0]
-    # y = end[1] - center[1]
-    # x = center[0] - end[0]
-    y = center[1] - end[1]
+def get_angle(pt1, pt2):
+    # X-direction is positive (increase when going from left to right) for both image and cartesian coordinates
+    x = pt2[0] - pt1[0]
+
+    # Y-direction is negative (increases going down the frame) for the image coordinates
+    # and is positive (increases going up the frame) for the cartesian coordinates
+    y = pt1[1] - pt2[1]
 
     abs_x = np.absolute(x)
     abs_y = np.absolute(y)
@@ -133,6 +171,7 @@ def draw_centers(frame, centers):
         cv2.circle(frame, center_pxs, radius, color, -1)
 
 
+
 def find_center(cnrs):
     x = cnrs[0][0][0] + cnrs[0][1][0] + cnrs[0][2][0] + cnrs[0][3][0]
     x = x/4
@@ -154,7 +193,11 @@ def find_front(crns):
 
 
 def print_object_info(obj):
-    print(10*'-')
+    # if the object has a markers list, print each marker in the list
+    if 'markers' in obj.keys():
+        for marker in obj['markers']:
+            print_object_info(marker)
+    
     # Print ID
     if 'id' in obj.keys():
         print('{} ID: {}'.format(obj['name'], obj['id']))
@@ -169,7 +212,7 @@ def print_object_info(obj):
     if 'angle' in obj.keys():
         print('{0} angle: {1:.1f}'.format(obj['name'], obj['angle']))
     
-    print(10*'-')
+    print()
 
 
 def update_obj(obj, center, front):
@@ -195,8 +238,6 @@ def get_claw_to_can_distance(scene_objects):
         distance = get_distance(claw_pt, can_pt)
 
     print('Claw to Can distance: {0:1f}'.format(distance))
-    print(10*'-')
-    print()
 
     return distance
 
@@ -235,8 +276,6 @@ def get_claw_to_can_angle(frame, scene_objects):
         claw_to_can_angle = np.NaN
 
     print('Claw to Can angle: {0:1f}'.format(claw_to_can_angle))
-    print(10*'-')
-    # print()
 
     return claw_to_can_angle
 
@@ -282,6 +321,8 @@ def update_claw(claw_to_can_distance, claw_to_can_angle, mySocket, move_robot=Tr
     print(can_move_left_query)
     can_move_left = bool(list(prolog.query(can_move_left_query)))
 
+    print()
+    
     if(move_forward_and_open):
         print('open')
         print('forward')
@@ -334,12 +375,15 @@ def main_vision(host, port, calibration_file):
     count = 0
     max_count = 10
     show_frame = True
-    move_robot = True
+    move_robot = False
 
-    # get socket for claw robot server connection
-    print('Opening socket connection to Claw Robot')
-    mySocket = socket.socket()
-    mySocket.connect((host,port))
+    if move_robot:
+        # get socket for claw robot server connection
+        print('Opening socket connection to Claw Robot')
+        mySocket = socket.socket()
+        mySocket.connect((host,port))
+    else:
+        mySocket = None
 
     # Get calibration results from input file   
     print('Reading camera calibration data from file')     
@@ -383,15 +427,23 @@ def main_vision(host, port, calibration_file):
 
                 for id, center, front in zip(ids, centers, fronts):
                     for (key, obj) in scene_objects.items():
-                        if id == obj['id']:
+                        if 'id' in obj.keys() and id == obj['id']:
                             obj = update_obj(obj, center, front)
+                        elif 'markers' in obj.keys():
+                            for marker in obj['markers']:
+                                if id == marker['id']:
+                                    marker = update_obj(marker, center, front)
 
             # print all objects ID/POSITION/ANGLE
             for (key, obj) in scene_objects.items():
                 print_object_info(obj)
 
+            print(10*'-')
             claw_to_can_angle = get_claw_to_can_angle(frame, scene_objects)
+            print(10*'-')
             claw_to_can_distance = get_claw_to_can_distance(scene_objects)
+            print(10*'-')
+            print()
 
             if count > max_count:
                 count = 0
@@ -419,9 +471,10 @@ def main_vision(host, port, calibration_file):
         print('Closing OpenCV Windows')
         cv2.destroyAllWindows()
 
-        # clean up claw robot server connection
-        print('Releasing Claw Robot Socket')
-        mySocket.close()
+        if move_robot:
+            # clean up claw robot server connection
+            print('Releasing Claw Robot Socket')
+            mySocket.close()
         print()
 
 if __name__ == '__main__':
