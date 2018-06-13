@@ -7,6 +7,10 @@ from pprint import pprint
 import socket
 import time
 import yaml
+from pyswip import Prolog
+
+prolog = Prolog()
+prolog.consult('prolog_planner1.pl')
 
 CAN_ID = 880
 CLAW_ROBOT_ID = 481
@@ -223,18 +227,12 @@ def get_claw_to_can_angle(frame, scene_objects):
     else:
         claw_to_can_vector_angle = np.NaN
 
-    # print('Claw to Can vector angle: {0:.1f}'.format(claw_to_can_vector_angle))
-    # print(10*'-')
-
     if not np.isnan(claw_to_can_vector_angle):
         claw_to_can_angle = claw_to_can_vector_angle - claw_ang
         if claw_to_can_angle < 0:
             claw_to_can_angle = claw_to_can_angle + 360
     else:
         claw_to_can_angle = np.NaN
-        
-    # if 'angle' in scene_objects['claw']:
-    #     print('Claw Angle: {0:1f}'.format(scene_objects['claw']['angle']))
 
     print('Claw to Can angle: {0:1f}'.format(claw_to_can_angle))
     print(10*'-')
@@ -252,27 +250,51 @@ def update_claw(claw_to_can_distance, claw_to_can_angle, mySocket, move_robot=Tr
     angle_buffer = 10
     max_distance = 50
 
-    largest_angle = 360 - (angle_buffer/2)
-    smallest_angle = (angle_buffer/2)
+    max_angle = int(360 - (angle_buffer/2))
+    min_angle = int((angle_buffer/2))
 
-    if claw_to_can_angle > largest_angle or claw_to_can_angle < smallest_angle:
-        if claw_to_can_distance > max_distance:
-            print('open')
-            print('forward')
-            if move_robot:
-                send_command(mySocket, 'open')
-                send_command(mySocket, 'forward')
-        else:
-            print('stop')
-            print('close')
-            if move_robot:
-                send_command(mySocket, 'stop')
-                send_command(mySocket, 'close')
-        # print('stop')
-        # if move_robot:
-        #     send_command(mySocket, 'stop')
-        #     send_command(mySocket, 'open')
-    elif claw_to_can_angle > 180:
+    threshold_angle = 180
+
+    claw_to_can_angle = int(claw_to_can_angle)
+    claw_to_can_distance = int(claw_to_can_distance)
+
+    move_forward_and_open_query = "move_forward_and_open({0:}, {1:}, {2:}, {3:}, {4:})".format(
+        claw_to_can_angle, 
+        claw_to_can_distance,
+        max_angle,
+        min_angle,
+        max_distance
+    )
+    print(move_forward_and_open_query)
+    move_forward_and_open = bool(list(prolog.query(move_forward_and_open_query)))
+
+    stop_and_close_query = "stop_and_close({0:}, {1:}, {2:}, {3:}, {4:})".format(
+        claw_to_can_angle, 
+        claw_to_can_distance,
+        max_angle,
+        min_angle,
+        max_distance
+    )
+    print(stop_and_close_query)
+    stop_and_close = bool(list(prolog.query(stop_and_close_query)))
+
+    can_move_left_query = "can_move_left({0:},{1:})".format(claw_to_can_angle, threshold_angle)
+    print(can_move_left_query)
+    can_move_left = bool(list(prolog.query(can_move_left_query)))
+
+    if(move_forward_and_open):
+        print('open')
+        print('forward')
+        if move_robot:
+            send_command(mySocket, 'open')
+            send_command(mySocket, 'forward')
+    elif(stop_and_close):
+        print('stop')
+        print('close')
+        if move_robot:
+            send_command(mySocket, 'stop')
+            send_command(mySocket, 'close')
+    elif(can_move_left):
         print('turn left')
         if move_robot:
             send_command(mySocket, 'left')
@@ -280,6 +302,7 @@ def update_claw(claw_to_can_distance, claw_to_can_angle, mySocket, move_robot=Tr
         print('turn right')
         if move_robot:
             send_command(mySocket, 'right')
+
 
 def setup_video_capture_device(device_id=1):
     # setup camera capture
