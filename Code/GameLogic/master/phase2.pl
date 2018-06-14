@@ -1,3 +1,4 @@
+
 /*
 	Matt Fleetwood
 	ECE 410/510
@@ -29,3 +30,13 @@ robot_is_right_of_ramp(RobotX, RampTopRightCornerX, RampBotRightCornerX) :-
 robot_is_in_front_of_ramp(RobotY, RampBotLeftCornerY, RampBotRightCornerY) :-
 		RobotY < RampLeftCornerY,
 		RobotY < RampRightCornerY.
+
+/* IF the robot's (x, y) position is behind the ramp AND to the left of the ramp, THEN rotate 270 degrees east of the ramp */
+rotate_270_degrees_east_of_ramp(RobotX, RobotY, RampTopLeftCornerX, RampBotLeftCornerX, RampTopLeftCornerY, RampTopRightCornerY) :-
+		robot_is_behind_ramp(RobotY, RampTopLeftCornerY, RampTopRightCornerY),
+		robot_is_left_of_ramp(RobotX, RampTopLeftCornerX, RampBotLeftCornerX).
+
+/* IF the robot's (x, y) position is behind the ramp AND to the right of the ramp, THEN rotate 90 degrees west of the ramp */
+rotate_90_degrees_west_of_ramp(RobotX, RobotY, RampTopLeftCornerY, RampTopRightCornerY, RampTopRightCornerX, RampBotRightCornerX) :-
+		robot_is_behind_ramp(RobotY, RampTopLeftCornerY, RampTopRightCornerY),
+		robot_is_right_of_ramp(RobotX, RampTopRightCornerX, RampBotRightCornerX.
