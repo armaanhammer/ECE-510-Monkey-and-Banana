@@ -50,7 +50,7 @@ rotate_270_degrees_east_of_ramp(RobotX, RobotY, RampTopLeftCornerX, RampBotLeftC
 /* IF the robot's (x, y) position is behind the ramp AND to the right of the ramp, THEN rotate 90 degrees west of the ramp */
 rotate_90_degrees_west_of_ramp(RobotX, RobotY, RampTopLeftCornerY, RampTopRightCornerY, RampTopRightCornerX, RampBotRightCornerX) :-
 		robot_is_behind_ramp(RobotY, RampTopLeftCornerY, RampTopRightCornerY),
-		robot_is_right_of_ramp(RobotX, RampTopRightCornerX, RampBotRightCornerX.
+		robot_is_right_of_ramp(RobotX, RampTopRightCornerX, RampBotRightCornerX).
 
 /* IF the robot's (x, y) position is NOT in front of the ramp, THEN rotate 180 degrees south of the ramp*/		
 rotate_180_degrees_south_of_ramp(RobotY, RampBotLeftCornerY, RampBotRightCornerY) :-
