@@ -10,18 +10,22 @@
 	bottom corners).
 */
 
+/* Robot is behind the ramp if the robot's Y-postion is greater than both the top left and right corners of the ramp */
 robot_is_behind_ramp(RobotY, RampTopLeftCornerY, RampTopRightCornerY) :-
 		RobotY > RampLeftCornerY,
 		RobotY > RampRightCornerY.
-
+		
+/* Robot is on the left-side of the ramp if the robot's X-position is lesser than the top and bottom left corners of the ramp */
 robot_is_left_of_ramp(RobotX, RampTopLeftCornerX, RampBotLeftCornerX) :-
 		RobotX < RampTopLeftCornerX,
 		RobotX < RampBotLeftCornerX.
-		
+
+/* Robot is on the right-side of the ramp if the robot's X-position is greater than the top and bottom right corners of the ramp */
 robot_is_right_of_ramp(RobotX, RampTopRightCornerX, RampBotRightCornerX) :-
 		RobotX > RampTopLeftCornerX,
 		RobotX > RampBotLeftCornerX.
 
+/* Robot is in front of the ramp if the robot's Y-position is lesser than the bottom left and right corners of the ramp */
 robot_is_in_front_of_ramp(RobotY, RampBotLeftCornerY, RampBotRightCornerY) :-
 		RobotY < RampLeftCornerY,
 		RobotY < RampRightCornerY.
