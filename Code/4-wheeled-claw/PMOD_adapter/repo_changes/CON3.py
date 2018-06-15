@@ -11,6 +11,8 @@ import RPi.GPIO as gpio
 CAP = 'GPIO'
 PHY = '1x6'
 
+START_POSITION = 8
+
 class PmodCON3:
 
     def __init__(self, DSPMod6):
@@ -28,21 +30,21 @@ class PmodCON3:
         gpio.setup(self.port3, gpio.OUT)
         gpio.setup(self.port4, gpio.OUT)
         
-        self.servo1 = gpio.PWM(self.port1, 500)
-        self.servo2 = gpio.PWM(self.port2, 500)
-        self.servo3 = gpio.PWM(self.port3, 500)
-        self.servo4 = gpio.PWM(self.port4, 500)
+        self.servo1 = gpio.PWM(self.port1, 50)
+        self.servo2 = gpio.PWM(self.port2, 50)
+        self.servo3 = gpio.PWM(self.port3, 50)
+        self.servo4 = gpio.PWM(self.port4, 50)
         
-        self.servo1.start(50)
-        self.servo2.start(50)
-        self.servo3.start(50)
-        self.servo4.start(50)
+        self.servo1.start(START_POSITION)
+        self.servo2.start(START_POSITION)
+        self.servo3.start(START_POSITION)
+        self.servo4.start(START_POSITION)
        
     def start(self):
-        self.servo1.start(50)
-        self.servo2.start(50)
-        self.servo3.start(50)
-        self.servo4.start(50)
+        self.servo1.start(START_POSITION)
+        self.servo2.start(START_POSITION)
+        self.servo3.start(START_POSITION)
+        self.servo4.start(START_POSITION)
 
     def set_servo1(self, duty):
         self.servo1.ChangeDutyCycle(duty)
