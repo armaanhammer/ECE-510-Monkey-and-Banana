@@ -2,7 +2,7 @@ import cv2
 import cv2.aruco as aruco
 from random import randint
 
-manual_nums = [880,481,818,58,209,839]
+manual_nums = [205,450,800,400,420,630]
 
 size = 200
 num_markers = 5
