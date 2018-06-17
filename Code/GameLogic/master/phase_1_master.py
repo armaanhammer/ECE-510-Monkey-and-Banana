@@ -1,4 +1,5 @@
 import argparse
+from copy import deepcopy
 import cv2
 import cv2.aruco as aruco
 import math
@@ -22,6 +23,11 @@ TOP_RIGHT_RAMP_ID = 818
 TOP_LEFT_RAMP_ID = 58
 BOTTOM_RIGHT_RAMP_ID = 209
 BOTTOM_LEFT_RAMP_ID = 839
+
+TOP_RIGHT_SCENE_ID = 205
+TOP_LEFT_SCENE_ID = 800
+BOTTOM_RIGHT_SCENE_ID = 450
+BOTTOM_LEFT_SCENE_ID = 630
 
 # Scene Objects dictionary
 scene_objects = {
@@ -53,7 +59,29 @@ scene_objects = {
                 'id': BOTTOM_LEFT_RAMP_ID,
             },
         ]
+    },
+    'scene': {
+        'name': 'SCENE',
+        'markers': [
+            {
+                'name': 'top_right',
+                'id': TOP_RIGHT_SCENE_ID,
+            },
+            {
+                'name': 'top_left',
+                'id': TOP_LEFT_SCENE_ID,
+            },
+            {
+                'name': 'bottom_right',
+                'id': BOTTOM_RIGHT_SCENE_ID, 
+            },
+            {
+                'name': 'bottom_left',
+                'id': BOTTOM_LEFT_SCENE_ID,
+            },
+        ]
     }
+
 }
 
 
@@ -350,10 +378,10 @@ def setup_video_capture_device(device_id=1):
     cap = cv2.VideoCapture(1)
 
     # Adjust camera settings (resolution, autofocus, etc.)
-    # cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
-    # cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 720)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
+    # cap.set(cv2.CAP_PROP_FRAME_WIDTH, 720)
+    # cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 
     # This is used to pop up the camera settings for scenarios where the settings cannot be set using OpenCV commands
     # cap.set(cv2.CAP_PROP_SETTINGS, 1)
@@ -376,6 +404,8 @@ def main_vision(host, port, calibration_file):
     max_count = 10
     show_frame = True
     move_robot = False
+    use_video = True
+    save_frame = True 
 
     if move_robot:
         # get socket for claw robot server connection
@@ -397,9 +427,16 @@ def main_vision(host, port, calibration_file):
 
     axisPoints = np.array([[0,0,0],[length,0,0],[0,length,0],[0,0,length]])
 
+    cv2.namedWindow('frame', cv2.WINDOW_NORMAL)
+
     try:
         while cap.isOpened():
             flags, frame = cap.read()
+            frame_to_save = deepcopy(frame)
+
+            if not use_video:
+                frame = cv2.imread('good_sample.png')
+
             corners, ids, rejectedImgPoints = aruco.detectMarkers(frame, dictionary)
 
             if len(corners)>0:
@@ -456,7 +493,11 @@ def main_vision(host, port, calibration_file):
                 count += 1
 
             if show_frame:
-                cv2.imshow('frame', frame)
+                frame2 = cv2.resize(frame, (800, 600)) 
+                cv2.imshow('frame', frame2)
+
+                if save_frame and len(ids) == 8:
+                    cv2.imwrite('frame_snapshot.png', frame_to_save)
                 
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
@@ -466,6 +507,7 @@ def main_vision(host, port, calibration_file):
     finally:
         print()
         print('Releasing Capture device')
+        
         cap.release()
 
         print('Closing OpenCV Windows')
