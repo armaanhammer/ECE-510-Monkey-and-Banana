@@ -199,19 +199,20 @@ def draw_centers(frame, centers):
         cv2.circle(frame, center_pxs, radius, color, -1)
 
 
-
 def find_center(cnrs):
-    x = cnrs[0][0][0] + cnrs[0][1][0] + cnrs[0][2][0] + cnrs[0][3][0]
-    x = x/4
-    y = cnrs[0][0][1] + cnrs[0][1][1] + cnrs[0][2][1] + cnrs[0][3][1]
-    y = y/4
-    return([x,y])
-  
+    x = [x[0] for x in cnrs]
+    avg_x = np.average(x)
+
+    y = [x[1] for x in cnrs]
+    avg_y = np.average(y)
+    
+    return tuple([int(avg_x), int(avg_y)])
+
 
 def find_all_centers(cnrs_list):
     centers = []
     for cnrs in cnrs_list:
-        centers.append(find_center(cnrs))
+        centers.append(find_center(cnrs[0]))
 
     return centers
 
@@ -250,7 +251,7 @@ def update_obj(obj, center, front):
 
     return obj
 
-def get_claw_to_can_distance(scene_objects):
+def get_claw_to_can_distance(scene_objects, verbose=True):
     distance = np.NaN
     if 'position' in scene_objects['claw']:
         claw_pt = scene_objects['claw']['position']
@@ -265,12 +266,13 @@ def get_claw_to_can_distance(scene_objects):
     if claw_pt is not None and can_pt is not None:
         distance = get_distance(claw_pt, can_pt)
 
-    print('Claw to Can distance: {0:1f}'.format(distance))
+    if verbose:
+        print('Claw to Can distance: {0:1f}'.format(distance))
 
     return distance
 
 
-def get_claw_to_can_angle(frame, scene_objects):
+def get_claw_to_can_angle(frame, scene_objects, verbose=True):
     # calculate angle between the can and the claw
     black = (0, 0, 0)
     if 'position' in scene_objects['claw']:
@@ -303,7 +305,8 @@ def get_claw_to_can_angle(frame, scene_objects):
     else:
         claw_to_can_angle = np.NaN
 
-    print('Claw to Can angle: {0:1f}'.format(claw_to_can_angle))
+    if verbose:
+        print('Claw to Can angle: {0:1f}'.format(claw_to_can_angle))
 
     return claw_to_can_angle
 
@@ -332,7 +335,7 @@ def update_claw(claw_to_can_distance, claw_to_can_angle, mySocket, move_robot=Tr
         min_angle,
         max_distance
     )
-    print(move_forward_and_open_query)
+    # print(move_forward_and_open_query)
     move_forward_and_open = bool(list(prolog.query(move_forward_and_open_query)))
 
     stop_and_close_query = "stop_and_close({0:}, {1:}, {2:}, {3:}, {4:})".format(
@@ -342,40 +345,40 @@ def update_claw(claw_to_can_distance, claw_to_can_angle, mySocket, move_robot=Tr
         min_angle,
         max_distance
     )
-    print(stop_and_close_query)
+    # print(stop_and_close_query)
     stop_and_close = bool(list(prolog.query(stop_and_close_query)))
 
     can_move_left_query = "can_move_left({0:},{1:})".format(claw_to_can_angle, threshold_angle)
-    print(can_move_left_query)
+    # print(can_move_left_query)
     can_move_left = bool(list(prolog.query(can_move_left_query)))
 
-    print()
+    # print()
     
     if(move_forward_and_open):
-        print('open')
-        print('forward')
+        # print('open')
+        # print('forward')
         if move_robot:
             send_command(mySocket, 'open')
             send_command(mySocket, 'forward')
     elif(stop_and_close):
-        print('stop')
-        print('close')
+        # print('stop')
+        # print('close')
         if move_robot:
             send_command(mySocket, 'stop')
             send_command(mySocket, 'close')
     elif(can_move_left):
-        print('turn left')
+        # print('turn left')
         if move_robot:
             send_command(mySocket, 'left')
     else:
-        print('turn right')
+        # print('turn right')
         if move_robot:
             send_command(mySocket, 'right')
 
 
 def setup_video_capture_device(device_id=1):
     # setup camera capture
-    cap = cv2.VideoCapture(1)
+    cap = cv2.VideoCapture(device_id)
 
     # Adjust camera settings (resolution, autofocus, etc.)
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
@@ -398,14 +401,286 @@ def setup_video_capture_device(device_id=1):
     return cap
 
 
+def draw_line(frame, pt1, pt2, color):
+    thickness = 2
+    line = 8
+    green = (0,0,255)
+    red = (0,255,0)
+    blue = (255,0,0)
+    black = (0,0,0)
+
+    pt1_pxs = tuple([int(x) for x in pt1])
+    pt2_pxs = tuple([int(x) for x in pt2])
+
+    cv2.line(frame, pt1_pxs, pt2_pxs, color, thickness=thickness, lineType=line, shift=0)
+
+
+def draw_box(frame, corners, color):
+    draw_line(frame, corners[0], corners[1], color)
+    draw_line(frame, corners[1], corners[3], color)
+    draw_line(frame, corners[2], corners[3], color)
+    draw_line(frame, corners[2], corners[0], color)
+
+
+def find_region_center(region):
+    corners = [region['top_left'], region['top_right'], region['bottom_left'], region['bottom_right']]
+    region['center'] = find_center(corners)
+    return region
+
+
+def get_top_left_region(scene_corners, ramp_corners, verbose=False):
+    scene_top_left = [x['position'] for x in scene_corners if x['name'] == 'top_left'][0]
+    # print(scene_top_left)
+
+    ramp_top_left = [x['position'] for x in ramp_corners if x['name'] == 'top_left'][0]
+    # print(ramp_top_left)
+
+    region = {
+        'name': 'top_left',
+        'top_left': scene_top_left,
+        'bottom_right': ramp_top_left,
+        'top_right': (ramp_top_left[0], scene_top_left[1]),
+        'bottom_left': (scene_top_left[0], ramp_top_left[1]),
+    }
+
+    region = find_region_center(region)
+
+    if verbose:
+        pprint(region)
+
+    return region
+
+
+def get_bottom_left_region(scene_corners, ramp_corners, verbose=False):
+    scene_bottom_left = [x['position'] for x in scene_corners if x['name'] == 'bottom_left'][0]
+    # print(scene_top_left)
+
+    ramp_bottom_left = [x['position'] for x in ramp_corners if x['name'] == 'bottom_left'][0]
+    # print(ramp_top_left)
+
+    region = {
+        'name': 'bottom_left',
+        'bottom_left': scene_bottom_left,
+        'top_right': ramp_bottom_left,
+        'top_left': (scene_bottom_left[0], ramp_bottom_left[1]),
+        'bottom_right': (ramp_bottom_left[0], scene_bottom_left[1]),
+    }
+
+    region = find_region_center(region)
+
+    if verbose:
+        pprint(region)
+
+    return region
+
+
+def get_bottom_right_region(scene_corners, ramp_corners, verbose=False):
+    scene_bottom_right = [x['position'] for x in scene_corners if x['name'] == 'bottom_right'][0]
+    # print(scene_top_left)
+
+    ramp_bottom_right = [x['position'] for x in ramp_corners if x['name'] == 'bottom_right'][0]
+    # print(ramp_top_left)
+
+    region = {
+        'name': 'bottom_right',
+        'bottom_right': scene_bottom_right,
+        'top_left': ramp_bottom_right,
+        'top_right': (scene_bottom_right[0], ramp_bottom_right[1]),
+        'bottom_left': (ramp_bottom_right[0], scene_bottom_right[1]),
+    }
+
+    region = find_region_center(region)
+
+    if verbose:
+        pprint(region)
+
+    return region
+
+
+def get_top_right_region(scene_corners, ramp_corners, verbose=False):
+    scene_top_right = [x['position'] for x in scene_corners if x['name'] == 'top_right'][0]
+    ramp_top_right = [x['position'] for x in ramp_corners if x['name'] == 'top_right'][0]
+
+    region = {
+        'name': 'top_right',
+        'top_right': scene_top_right,
+        'bottom_left': ramp_top_right,
+        'top_left': (ramp_top_right[0], scene_top_right[1]),
+        'bottom_right': (scene_top_right[0], ramp_top_right[1]),
+    }
+
+    region = find_region_center(region)
+
+    if verbose:
+        pprint(region)
+
+    return region
+
+
+
+def get_top_center_region(scene_corners, ramp_corners, verbose=False):
+    scene_top_right = [x['position'] for x in scene_corners if x['name'] == 'top_right'][0]
+    scene_top_left = [x['position'] for x in scene_corners if x['name'] == 'top_left'][0]
+
+    top_y_value = np.average([scene_top_right[1], scene_top_left[1]])
+
+    ramp_top_right = [x['position'] for x in ramp_corners if x['name'] == 'top_right'][0]
+    ramp_top_left = [x['position'] for x in ramp_corners if x['name'] == 'top_left'][0]
+
+    region = {
+        'name': 'top_center',
+        'top_right': (ramp_top_right[0], top_y_value),
+        'bottom_left': ramp_top_left,
+        'top_left': (ramp_top_left[0], top_y_value),
+        'bottom_right': ramp_top_right,
+    }
+
+    region = find_region_center(region)
+
+    if verbose:
+        pprint(region)
+
+    return region
+
+
+def get_bottom_center_region(scene_corners, ramp_corners, verbose=False):
+    scene_bottom_right = [x['position'] for x in scene_corners if x['name'] == 'bottom_right'][0]
+    scene_bottom_left = [x['position'] for x in scene_corners if x['name'] == 'bottom_left'][0]
+
+    bottom_y_value = np.average([scene_bottom_right[1], scene_bottom_left[1]])
+
+    ramp_bottom_right = [x['position'] for x in ramp_corners if x['name'] == 'bottom_right'][0]
+    ramp_bottom_left = [x['position'] for x in ramp_corners if x['name'] == 'bottom_left'][0]
+
+    region = {
+        'name': 'bottom_center',
+        'top_right': ramp_bottom_right,
+        'bottom_left': (ramp_bottom_left[0], bottom_y_value),
+        'top_left': ramp_bottom_left,
+        'bottom_right': (ramp_bottom_right[0], bottom_y_value),
+    }
+
+    region = find_region_center(region)
+
+    if verbose:
+        pprint(region)
+
+    return region
+
+
+def get_center_left_region(scene_corners, ramp_corners, verbose=False):
+    scene_top_left = [x['position'] for x in scene_corners if x['name'] == 'top_left'][0]
+    scene_bottom_left = [x['position'] for x in scene_corners if x['name'] == 'bottom_left'][0]
+
+    left_x_value = np.average([scene_top_left[0], scene_bottom_left[0]])
+
+    ramp_top_left = [x['position'] for x in ramp_corners if x['name'] == 'top_left'][0]
+    ramp_bottom_left = [x['position'] for x in ramp_corners if x['name'] == 'bottom_left'][0]
+
+    region = {
+        'name': 'center_left',
+        'top_right': ramp_top_left,
+        'bottom_left': (left_x_value, ramp_bottom_left[1]),
+        'top_left': (left_x_value, ramp_top_left[1]),
+        'bottom_right': ramp_bottom_left,
+    }
+
+    region = find_region_center(region)
+
+    if verbose:
+        pprint(region)
+
+    return region
+
+
+def get_center_right_region(scene_corners, ramp_corners, verbose=False):
+    scene_top_right = [x['position'] for x in scene_corners if x['name'] == 'top_right'][0]
+    scene_bottom_right = [x['position'] for x in scene_corners if x['name'] == 'bottom_right'][0]
+
+    right_x_value = np.average([scene_top_right[0], scene_bottom_right[0]])
+
+    ramp_top_right = [x['position'] for x in ramp_corners if x['name'] == 'top_right'][0]
+    ramp_bottom_right = [x['position'] for x in ramp_corners if x['name'] == 'bottom_right'][0]
+
+    region = {
+        'name': 'center_right',
+        'top_right': (right_x_value, ramp_top_right[1]),
+        'bottom_left': ramp_bottom_right,
+        'top_left': ramp_top_right,
+        'bottom_right': (right_x_value, ramp_bottom_right[1]),
+    }
+
+    region = find_region_center(region)
+
+    if verbose:
+        pprint(region)
+
+    return region
+
+
+def get_center_region(scene_corners, ramp_corners, verbose=False):
+    ramp_top_right = [x['position'] for x in ramp_corners if x['name'] == 'top_right'][0]
+    ramp_bottom_right = [x['position'] for x in ramp_corners if x['name'] == 'bottom_right'][0]
+    ramp_top_left = [x['position'] for x in ramp_corners if x['name'] == 'top_left'][0]
+    ramp_bottom_left = [x['position'] for x in ramp_corners if x['name'] == 'bottom_left'][0]
+
+    region = {
+        'name': 'center',
+        'top_right': ramp_top_right,
+        'bottom_left': ramp_bottom_left,
+        'top_left': ramp_top_left,
+        'bottom_right': ramp_bottom_right,
+    }
+
+    region = find_region_center(region)
+
+    if verbose:
+        pprint(region)
+
+    return region
+
+
+def draw_region(frame, region, color):
+    region_corners = [region['top_left'], 
+                      region['top_right'],
+                      region['bottom_left'], 
+                      region['bottom_right']]
+    draw_box(frame, region_corners, color)
+    draw_centers(frame, [region['center']])
+
+
+def get_regions(scene_objects):
+    scene_corners = scene_objects['scene']['markers']
+    ramp_corners = scene_objects['ramp']['markers']
+
+    regions = {
+        'top_left': get_top_left_region(scene_corners, ramp_corners),
+        'bottom_left': get_bottom_left_region(scene_corners, ramp_corners),
+        'bottom_right': get_bottom_right_region(scene_corners, ramp_corners),
+        'top_right': get_top_right_region(scene_corners, ramp_corners),
+        'top_center': get_top_center_region(scene_corners, ramp_corners),
+        'bottom_center': get_bottom_center_region(scene_corners, ramp_corners),
+        'center_left': get_center_left_region(scene_corners, ramp_corners),
+        'center_right': get_center_right_region(scene_corners, ramp_corners),
+        'center': get_center_region(scene_corners, ramp_corners),
+    }
+
+    return regions
+
+
+def draw_scene_regions(frame, regions):
+    for key, value in regions.items():
+        draw_region(frame, value, (0,0,0))
+
+
 def main_vision(host, port, calibration_file):
     length = 0.04 # length of marker side
     count = 0
     max_count = 10
     show_frame = True
     move_robot = False
-    use_video = True
-    save_frame = True 
+    use_video = False
+    save_frame = True
 
     if move_robot:
         # get socket for claw robot server connection
@@ -423,7 +698,7 @@ def main_vision(host, port, calibration_file):
     dictionary = aruco.getPredefinedDictionary(aruco.DICT_ARUCO_ORIGINAL)
 
     print('Setting up video capture device')
-    cap = setup_video_capture_device(device_id=1)
+    cap = setup_video_capture_device(device_id=0)
 
     axisPoints = np.array([[0,0,0],[length,0,0],[0,length,0],[0,0,length]])
 
@@ -472,15 +747,18 @@ def main_vision(host, port, calibration_file):
                                     marker = update_obj(marker, center, front)
 
             # print all objects ID/POSITION/ANGLE
-            for (key, obj) in scene_objects.items():
-                print_object_info(obj)
+            # for (key, obj) in scene_objects.items():
+            #     print_object_info(obj)
 
-            print(10*'-')
-            claw_to_can_angle = get_claw_to_can_angle(frame, scene_objects)
-            print(10*'-')
-            claw_to_can_distance = get_claw_to_can_distance(scene_objects)
-            print(10*'-')
-            print()
+            # print(10*'-')
+            claw_to_can_angle = get_claw_to_can_angle(frame, scene_objects, verbose=False)
+            # print(10*'-')
+            claw_to_can_distance = get_claw_to_can_distance(scene_objects, verbose=False)
+            # print(10*'-')
+            # print()
+
+            regions = get_regions(scene_objects)
+            draw_scene_regions(frame, regions)
 
             if count > max_count:
                 count = 0
@@ -497,7 +775,7 @@ def main_vision(host, port, calibration_file):
                 cv2.imshow('frame', frame2)
 
                 if save_frame and len(ids) == 8:
-                    cv2.imwrite('frame_snapshot.png', frame_to_save)
+                    cv2.imwrite('frame_snapshot.png', frame)
                 
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
