@@ -17,7 +17,8 @@ prolog.consult('prolog_planner1.pl')
 # Aruco marker IDs for various scene objects
 CAN_ID = 880
 
-CLAW_ROBOT_ID = 481
+CLAW_ROBOT_FRONT_ID = 481
+CLAW_ROBOT_CENTER_ID = 400
 
 TOP_RIGHT_RAMP_ID = 818
 TOP_LEFT_RAMP_ID = 58
@@ -35,9 +36,13 @@ scene_objects = {
         'name': 'CAN',
         'id': CAN_ID,
     },
-    'claw': {
-        'name': 'CLAW',
-        'id': CLAW_ROBOT_ID,
+    'claw_center': {
+        'name': 'CLAW_CENTER',
+        'id': CLAW_ROBOT_CENTER_ID,
+    },
+    'claw_front': {
+        'name': 'CLAW_FRONT',
+        'id': CLAW_ROBOT_FRONT_ID,
     },
     'ramp': {
         'name': 'RAMP',
@@ -126,44 +131,51 @@ def read_calibration_data(file):
 
 
 def get_distance(pt1, pt2):
-    # X-direction is positive (increase when going from left to right) for both image and cartesian coordinates
-    x = pt2[0] - pt1[0]
+    if pt1 is not None and pt2 is not None:
+        # X-direction is positive (increase when going from left to right) for both image and cartesian coordinates
+        x = pt2[0] - pt1[0]
 
-    # Y-direction is negative (increases going down the frame) for the image coordinates
-    # and is positive (increases going up the frame) for the cartesian coordinates
-    y = pt1[1] - pt2[1]
-    distance = math.sqrt(x**2 + y**2)
+        # Y-direction is negative (increases going down the frame) for the image coordinates
+        # and is positive (increases going up the frame) for the cartesian coordinates
+        y = pt1[1] - pt2[1]
+        distance = math.sqrt(x**2 + y**2)
+    else:
+        distance = np.NaN
+
     return distance
 
 
 def get_angle(pt1, pt2):
-    # X-direction is positive (increase when going from left to right) for both image and cartesian coordinates
-    x = pt2[0] - pt1[0]
+    if pt1 is not None and pt2 is not None:
+        # X-direction is positive (increase when going from left to right) for both image and cartesian coordinates
+        x = pt2[0] - pt1[0]
 
-    # Y-direction is negative (increases going down the frame) for the image coordinates
-    # and is positive (increases going up the frame) for the cartesian coordinates
-    y = pt1[1] - pt2[1]
+        # Y-direction is negative (increases going down the frame) for the image coordinates
+        # and is positive (increases going up the frame) for the cartesian coordinates
+        y = pt1[1] - pt2[1]
 
-    abs_x = np.absolute(x)
-    abs_y = np.absolute(y)
-    tmp_angle = np.arctan(abs_y/abs_x)
+        abs_x = np.absolute(x)
+        abs_y = np.absolute(y)
+        tmp_angle = np.arctan(abs_y/abs_x)
 
-    if x >= 0 and y >= 0:
-        angle = ((1/2)*np.pi) - tmp_angle                    
-    elif x >=0 and y < 0:
-        angle = ((1/2)*np.pi) + tmp_angle
-    elif x < 0 and y < 0:
-        angle = ((3/2)*np.pi) - tmp_angle
-    elif x < 0 and y >= 0:
-        angle = ((3/2)*np.pi) + tmp_angle
+        if x >= 0 and y >= 0:
+            angle = ((1/2)*np.pi) - tmp_angle                    
+        elif x >=0 and y < 0:
+            angle = ((1/2)*np.pi) + tmp_angle
+        elif x < 0 and y < 0:
+            angle = ((3/2)*np.pi) - tmp_angle
+        elif x < 0 and y >= 0:
+            angle = ((3/2)*np.pi) + tmp_angle
+        else:
+            print("illegal angle!!!")
+            print("x: {}".format(x))
+            print("y: {}".format(y))
+            print("angle: {}".format(tmp_angle))
+            angle = np.NaN
+
+        angle = angle * (180/np.pi)
     else:
-        print("illegal angle!!!")
-        print("x: {}".format(x))
-        print("y: {}".format(y))
-        print("angle: {}".format(tmp_angle))
         angle = np.NaN
-
-    angle = angle * (180/np.pi)
 
     return angle
 
@@ -251,64 +263,33 @@ def update_obj(obj, center, front):
 
     return obj
 
-def get_claw_to_can_distance(scene_objects, verbose=True):
+
+def get_claw_to_goal_distance(claw_pt, goal_pt, verbose=True):
     distance = np.NaN
-    if 'position' in scene_objects['claw']:
-        claw_pt = scene_objects['claw']['position']
-    else:
-        claw_pt = None
 
-    if 'position' in scene_objects['can']:
-        can_pt = scene_objects['can']['position']
-    else:
-        can_pt = None
-
-    if claw_pt is not None and can_pt is not None:
-        distance = get_distance(claw_pt, can_pt)
+    if claw_pt is not None and goal_pt is not None:
+        distance = get_distance(claw_pt, goal_pt)
 
     if verbose:
-        print('Claw to Can distance: {0:1f}'.format(distance))
+        print('Claw to Goal distance: {0:1f}'.format(distance))
 
     return distance
 
 
-def get_claw_to_can_angle(frame, scene_objects, verbose=True):
-    # calculate angle between the can and the claw
-    black = (0, 0, 0)
-    if 'position' in scene_objects['claw']:
-        claw_pt = scene_objects['claw']['position']
-    else:
-        claw_pt = None
-    
-    if 'angle' in scene_objects['claw']:
-        claw_ang = scene_objects['claw']['angle']
-    else:
-        claw_ang = np.NaN
-    
-    if 'position' in scene_objects['can']:
-        can_pt = scene_objects['can']['position']
-    else:
-        can_pt = None
+def get_claw_to_goal_angle(claw_pt, claw_angle, goal_pt, verbose=True):
+    claw_to_goal_vector_angle = get_angle(claw_pt, goal_pt)
 
-    if claw_pt is not None and can_pt is not None:
-        cv2.line(frame, claw_pt, can_pt, black, thickness=2, lineType=8, shift=0)
-
-    if claw_pt is not None and can_pt is not None:
-        claw_to_can_vector_angle = get_angle(claw_pt, can_pt)
+    if not np.isnan(claw_to_goal_vector_angle):
+        claw_to_goal_angle = claw_to_goal_vector_angle - claw_angle
+        if claw_to_goal_angle < 0:
+            claw_to_goal_angle = claw_to_goal_angle + 360
     else:
-        claw_to_can_vector_angle = np.NaN
-
-    if not np.isnan(claw_to_can_vector_angle):
-        claw_to_can_angle = claw_to_can_vector_angle - claw_ang
-        if claw_to_can_angle < 0:
-            claw_to_can_angle = claw_to_can_angle + 360
-    else:
-        claw_to_can_angle = np.NaN
+        claw_to_goal_angle = np.NaN
 
     if verbose:
-        print('Claw to Can angle: {0:1f}'.format(claw_to_can_angle))
+        print('Claw to Goal angle: {0:1f}'.format(claw_to_goal_angle))
 
-    return claw_to_can_angle
+    return claw_to_goal_angle
 
 
 def send_command(socket, message):
@@ -316,64 +297,89 @@ def send_command(socket, message):
     data = socket.recv(1024).decode()
 
 
-def update_claw(claw_to_can_distance, claw_to_can_angle, mySocket, move_robot=True):
+def update_claw(claw_to_goal_distance, claw_to_goal_angle, mySocket, move_robot=True, verbose=False):
     angle_buffer = 10
-    max_distance = 50
+    max_distance = 75
 
     max_angle = int(360 - (angle_buffer/2))
     min_angle = int((angle_buffer/2))
 
     threshold_angle = 180
 
-    claw_to_can_angle = int(claw_to_can_angle)
-    claw_to_can_distance = int(claw_to_can_distance)
-
-    move_forward_and_open_query = "move_forward_and_open({0:}, {1:}, {2:}, {3:}, {4:})".format(
-        claw_to_can_angle, 
-        claw_to_can_distance,
-        max_angle,
-        min_angle,
-        max_distance
-    )
-    # print(move_forward_and_open_query)
-    move_forward_and_open = bool(list(prolog.query(move_forward_and_open_query)))
-
-    stop_and_close_query = "stop_and_close({0:}, {1:}, {2:}, {3:}, {4:})".format(
-        claw_to_can_angle, 
-        claw_to_can_distance,
-        max_angle,
-        min_angle,
-        max_distance
-    )
-    # print(stop_and_close_query)
-    stop_and_close = bool(list(prolog.query(stop_and_close_query)))
-
-    can_move_left_query = "can_move_left({0:},{1:})".format(claw_to_can_angle, threshold_angle)
-    # print(can_move_left_query)
-    can_move_left = bool(list(prolog.query(can_move_left_query)))
-
-    # print()
+    if np.isnan(claw_to_goal_angle):
+        return 'error'
     
-    if(move_forward_and_open):
-        # print('open')
-        # print('forward')
-        if move_robot:
-            send_command(mySocket, 'open')
-            send_command(mySocket, 'forward')
-    elif(stop_and_close):
-        # print('stop')
-        # print('close')
-        if move_robot:
-            send_command(mySocket, 'stop')
-            send_command(mySocket, 'close')
-    elif(can_move_left):
-        # print('turn left')
-        if move_robot:
-            send_command(mySocket, 'left')
-    else:
-        # print('turn right')
-        if move_robot:
-            send_command(mySocket, 'right')
+    if np.isnan(claw_to_goal_distance):
+        return 'error'
+
+    claw_to_goal_angle = int(claw_to_goal_angle)
+    claw_to_goal_distance = int(claw_to_goal_distance)
+
+    forward_query = "forward({0:}, {1:}, {2:}, {3:}, {4:})".format(
+        claw_to_goal_angle, 
+        claw_to_goal_distance,
+        max_angle,
+        min_angle,
+        max_distance
+    )
+    if verbose:
+        print(forward_query)
+    forward = bool(list(prolog.query(forward_query)))
+
+    # stop_query = "stop({0:}, {1:}, {2:}, {3:}, {4:})".format(
+    #     claw_to_goal_angle, 
+    #     claw_to_goal_distance,
+    #     max_angle,
+    #     min_angle,
+    #     max_distance
+    # )
+    stop_query = "stop({0:}, {1:})".format(
+        claw_to_goal_distance,
+        max_distance
+    )
+    if verbose:
+        print(stop_query)
+    stop = bool(list(prolog.query(stop_query)))
+
+    left_query = "left({0:},{1:})".format(claw_to_goal_angle, threshold_angle)
+    if verbose:
+        print(left_query)
+    left = bool(list(prolog.query(left_query)))
+
+    if(forward): command = 'forward'
+    elif(stop): command = 'stop'
+    elif(left): command = 'left'
+    else: command = 'right'
+    
+    # Print the command if verbose
+    if verbose:
+        print('Command: {}'.format(command))
+
+    # move the robot if flag is set to true
+    if move_robot:
+        delay = "0.1"
+
+        if command == 'left' or command == 'right':
+            if claw_to_goal_angle > 90:
+                delay = "0.2"
+            elif claw_to_goal_angle > 45:
+                delay = "0.15"
+            else:
+                delay = "0.1"
+
+        if command == 'forward':
+            if claw_to_goal_distance > 200:
+                delay = "0.2"
+            elif claw_to_goal_distance > 150:
+                delay = "0.15"
+            else:
+                delay = "0.1"
+
+        power = "50"
+        full_command = command + " " + delay + " " + power
+        send_command(mySocket, full_command)
+
+    return command
 
 
 def setup_video_capture_device(device_id=1):
@@ -428,12 +434,19 @@ def find_region_center(region):
     return region
 
 
-def get_top_left_region(scene_corners, ramp_corners, verbose=False):
-    scene_top_left = [x['position'] for x in scene_corners if x['name'] == 'top_left'][0]
-    # print(scene_top_left)
+def get_position(corners, name):
+    position = [x['position'] for x in corners if x['name'] == name and 'position' in x.keys()]
+    if len(position) > 0:
+        return position[0]
+    else:
+        return None
 
-    ramp_top_left = [x['position'] for x in ramp_corners if x['name'] == 'top_left'][0]
-    # print(ramp_top_left)
+def get_top_left_region(scene_corners, ramp_corners, verbose=False):
+    scene_top_left = get_position(scene_corners, 'top_left')
+    if scene_top_left is None: return None
+
+    ramp_top_left = get_position(ramp_corners, 'top_left')
+    if ramp_top_left is None: return None
 
     region = {
         'name': 'top_left',
@@ -452,11 +465,11 @@ def get_top_left_region(scene_corners, ramp_corners, verbose=False):
 
 
 def get_bottom_left_region(scene_corners, ramp_corners, verbose=False):
-    scene_bottom_left = [x['position'] for x in scene_corners if x['name'] == 'bottom_left'][0]
-    # print(scene_top_left)
+    scene_bottom_left = get_position(scene_corners, 'bottom_left')
+    if scene_bottom_left is None: return None
 
-    ramp_bottom_left = [x['position'] for x in ramp_corners if x['name'] == 'bottom_left'][0]
-    # print(ramp_top_left)
+    ramp_bottom_left = get_position(ramp_corners, 'bottom_left')
+    if ramp_bottom_left is None: return None 
 
     region = {
         'name': 'bottom_left',
@@ -475,12 +488,12 @@ def get_bottom_left_region(scene_corners, ramp_corners, verbose=False):
 
 
 def get_bottom_right_region(scene_corners, ramp_corners, verbose=False):
-    scene_bottom_right = [x['position'] for x in scene_corners if x['name'] == 'bottom_right'][0]
-    # print(scene_top_left)
+    scene_bottom_right = get_position(scene_corners, 'bottom_right')
+    if scene_bottom_right is None: return None 
 
-    ramp_bottom_right = [x['position'] for x in ramp_corners if x['name'] == 'bottom_right'][0]
-    # print(ramp_top_left)
-
+    ramp_bottom_right = get_position(ramp_corners, 'bottom_right')
+    if ramp_bottom_right is None: return None 
+    
     region = {
         'name': 'bottom_right',
         'bottom_right': scene_bottom_right,
@@ -498,8 +511,11 @@ def get_bottom_right_region(scene_corners, ramp_corners, verbose=False):
 
 
 def get_top_right_region(scene_corners, ramp_corners, verbose=False):
-    scene_top_right = [x['position'] for x in scene_corners if x['name'] == 'top_right'][0]
-    ramp_top_right = [x['position'] for x in ramp_corners if x['name'] == 'top_right'][0]
+    scene_top_right = get_position(scene_corners, 'top_right')
+    if scene_top_right is None: return None
+
+    ramp_top_right = get_position(ramp_corners, 'top_right')
+    if ramp_top_right is None: return None 
 
     region = {
         'name': 'top_right',
@@ -519,13 +535,19 @@ def get_top_right_region(scene_corners, ramp_corners, verbose=False):
 
 
 def get_top_center_region(scene_corners, ramp_corners, verbose=False):
-    scene_top_right = [x['position'] for x in scene_corners if x['name'] == 'top_right'][0]
-    scene_top_left = [x['position'] for x in scene_corners if x['name'] == 'top_left'][0]
+    scene_top_right = get_position(scene_corners, 'top_right')
+    if scene_top_right is None: return None
+    
+    scene_top_left = get_position(scene_corners, 'top_left')
+    if scene_top_left is None: return None
 
     top_y_value = np.average([scene_top_right[1], scene_top_left[1]])
 
-    ramp_top_right = [x['position'] for x in ramp_corners if x['name'] == 'top_right'][0]
-    ramp_top_left = [x['position'] for x in ramp_corners if x['name'] == 'top_left'][0]
+    ramp_top_right = get_position(ramp_corners, 'top_right')
+    if ramp_top_right is None: return None
+
+    ramp_top_left = get_position(ramp_corners, 'top_left')
+    if ramp_top_left is None: return None 
 
     region = {
         'name': 'top_center',
@@ -544,13 +566,19 @@ def get_top_center_region(scene_corners, ramp_corners, verbose=False):
 
 
 def get_bottom_center_region(scene_corners, ramp_corners, verbose=False):
-    scene_bottom_right = [x['position'] for x in scene_corners if x['name'] == 'bottom_right'][0]
-    scene_bottom_left = [x['position'] for x in scene_corners if x['name'] == 'bottom_left'][0]
+    scene_bottom_right = get_position(scene_corners, 'bottom_right')
+    if scene_bottom_right is None: return None
+
+    scene_bottom_left = get_position(scene_corners, 'bottom_left')
+    if scene_bottom_left is None: return None
 
     bottom_y_value = np.average([scene_bottom_right[1], scene_bottom_left[1]])
 
-    ramp_bottom_right = [x['position'] for x in ramp_corners if x['name'] == 'bottom_right'][0]
-    ramp_bottom_left = [x['position'] for x in ramp_corners if x['name'] == 'bottom_left'][0]
+    ramp_bottom_right = get_position(ramp_corners, 'bottom_right')
+    if ramp_bottom_right is None: return None
+
+    ramp_bottom_left = get_position(ramp_corners, 'bottom_left')
+    if ramp_bottom_left is None: return None
 
     region = {
         'name': 'bottom_center',
@@ -569,13 +597,19 @@ def get_bottom_center_region(scene_corners, ramp_corners, verbose=False):
 
 
 def get_center_left_region(scene_corners, ramp_corners, verbose=False):
-    scene_top_left = [x['position'] for x in scene_corners if x['name'] == 'top_left'][0]
-    scene_bottom_left = [x['position'] for x in scene_corners if x['name'] == 'bottom_left'][0]
+    scene_top_left = get_position(scene_corners, 'top_left')
+    if scene_top_left is None: return None
+
+    scene_bottom_left = get_position(scene_corners, 'bottom_left')
+    if scene_bottom_left is None: return None
 
     left_x_value = np.average([scene_top_left[0], scene_bottom_left[0]])
 
-    ramp_top_left = [x['position'] for x in ramp_corners if x['name'] == 'top_left'][0]
-    ramp_bottom_left = [x['position'] for x in ramp_corners if x['name'] == 'bottom_left'][0]
+    ramp_top_left = get_position(ramp_corners, 'top_left')
+    if ramp_top_left is None: return None
+
+    ramp_bottom_left = get_position(ramp_corners, 'bottom_left')
+    if ramp_bottom_left is None: return None
 
     region = {
         'name': 'center_left',
@@ -594,13 +628,19 @@ def get_center_left_region(scene_corners, ramp_corners, verbose=False):
 
 
 def get_center_right_region(scene_corners, ramp_corners, verbose=False):
-    scene_top_right = [x['position'] for x in scene_corners if x['name'] == 'top_right'][0]
-    scene_bottom_right = [x['position'] for x in scene_corners if x['name'] == 'bottom_right'][0]
+    scene_top_right = get_position(scene_corners, 'top_right')
+    if scene_top_right is None: return None
+
+    scene_bottom_right = get_position(scene_corners, 'bottom_right')
+    if scene_bottom_right is None: return None
 
     right_x_value = np.average([scene_top_right[0], scene_bottom_right[0]])
 
-    ramp_top_right = [x['position'] for x in ramp_corners if x['name'] == 'top_right'][0]
-    ramp_bottom_right = [x['position'] for x in ramp_corners if x['name'] == 'bottom_right'][0]
+    ramp_top_right = get_position(ramp_corners, 'top_right')
+    if ramp_top_right is None: return None
+
+    ramp_bottom_right = get_position(ramp_corners, 'bottom_right')
+    if ramp_bottom_right is None: return None
 
     region = {
         'name': 'center_right',
@@ -619,10 +659,17 @@ def get_center_right_region(scene_corners, ramp_corners, verbose=False):
 
 
 def get_center_region(scene_corners, ramp_corners, verbose=False):
-    ramp_top_right = [x['position'] for x in ramp_corners if x['name'] == 'top_right'][0]
-    ramp_bottom_right = [x['position'] for x in ramp_corners if x['name'] == 'bottom_right'][0]
-    ramp_top_left = [x['position'] for x in ramp_corners if x['name'] == 'top_left'][0]
-    ramp_bottom_left = [x['position'] for x in ramp_corners if x['name'] == 'bottom_left'][0]
+    ramp_top_right = get_position(ramp_corners, 'top_right')
+    if ramp_top_right is None: return None
+
+    ramp_bottom_right = get_position(ramp_corners, 'bottom_right')
+    if ramp_bottom_right is None: return None
+
+    ramp_top_left = get_position(ramp_corners, 'top_left')
+    if ramp_top_left is None: return None
+
+    ramp_bottom_left = get_position(ramp_corners, 'bottom_left')
+    if ramp_bottom_left is None: return None
 
     region = {
         'name': 'center',
@@ -641,29 +688,55 @@ def get_center_region(scene_corners, ramp_corners, verbose=False):
 
 
 def draw_region(frame, region, color):
-    region_corners = [region['top_left'], 
-                      region['top_right'],
-                      region['bottom_left'], 
-                      region['bottom_right']]
-    draw_box(frame, region_corners, color)
-    draw_centers(frame, [region['center']])
+    if region:
+        region_corners = [region['top_left'], 
+                          region['top_right'],
+                          region['bottom_left'], 
+                          region['bottom_right']]
+        draw_box(frame, region_corners, color)
+        draw_centers(frame, [region['center']])
 
 
-def get_regions(scene_objects):
+def get_regions(scene_objects, regions):
     scene_corners = scene_objects['scene']['markers']
     ramp_corners = scene_objects['ramp']['markers']
 
-    regions = {
-        'top_left': get_top_left_region(scene_corners, ramp_corners),
-        'bottom_left': get_bottom_left_region(scene_corners, ramp_corners),
-        'bottom_right': get_bottom_right_region(scene_corners, ramp_corners),
-        'top_right': get_top_right_region(scene_corners, ramp_corners),
-        'top_center': get_top_center_region(scene_corners, ramp_corners),
-        'bottom_center': get_bottom_center_region(scene_corners, ramp_corners),
-        'center_left': get_center_left_region(scene_corners, ramp_corners),
-        'center_right': get_center_right_region(scene_corners, ramp_corners),
-        'center': get_center_region(scene_corners, ramp_corners),
-    }
+    top_left_region = get_top_left_region(scene_corners, ramp_corners)
+    bottom_left_region = get_bottom_left_region(scene_corners, ramp_corners)
+    bottom_right_region = get_bottom_right_region(scene_corners, ramp_corners)
+    top_right_region = get_top_right_region(scene_corners, ramp_corners)
+    top_center_region = get_top_center_region(scene_corners, ramp_corners)
+    bottom_center_region = get_bottom_center_region(scene_corners, ramp_corners)
+    center_left_region = get_center_left_region(scene_corners, ramp_corners)
+    center_right_region = get_center_right_region(scene_corners, ramp_corners)
+    center_region = get_center_region(scene_corners, ramp_corners)
+
+    if top_left_region is not None:
+        regions['top_left'] = top_left_region
+    
+    if bottom_left_region is not None:
+        regions['bottom_left'] = bottom_left_region
+
+    if top_right_region is not None:
+        regions['top_right'] = top_right_region
+    
+    if bottom_right_region is not None:
+        regions['bottom_right'] = bottom_right_region
+
+    if top_center_region is not None:
+        regions['top_center'] = top_center_region
+    
+    if bottom_right_region is not None:
+        regions['bottom_center'] = bottom_center_region
+
+    if center_left_region is not None:
+        regions['center_left'] = center_left_region
+
+    if center_right_region is not None:
+        regions['center_right'] = center_right_region
+
+    if center_region is not None:
+        regions['center'] = center_region
 
     return regions
 
@@ -673,14 +746,135 @@ def draw_scene_regions(frame, regions):
         draw_region(frame, value, (0,0,0))
 
 
+def update_scene_objects(scene_objects, ids, centers, fronts):
+    for id, center, front in zip(ids, centers, fronts):
+        for (key, obj) in scene_objects.items():
+            if 'id' in obj.keys() and id == obj['id']:
+                obj = update_obj(obj, center, front)
+            elif 'markers' in obj.keys():
+                for marker in obj['markers']:
+                    if id == marker['id']:
+                        marker = update_obj(marker, center, front)
+    return scene_objects
+
+
+def get_centers_and_fronts(rvecs, tvecs, axisPoints, cameraMatrix, distCoeffs):
+    centers = []
+    fronts = []
+    for rvec, tvec in zip(rvecs, tvecs):
+        # aruco.drawAxis(frame, cameraMatrix, distCoeffs, rvec, tvec, length)
+        
+        # Populate object locations
+        imgPoints, ret = cv2.projectPoints(axisPoints, rvec, tvec, cameraMatrix, distCoeffs)
+
+        centers.append([imgPoints[0][0][0],imgPoints[0][0][1]])
+        fronts.append([imgPoints[1][0][0],imgPoints[1][0][1]])
+    return (centers, fronts)
+
+
+def get_goal_position(goal, scene_objects, regions):
+    # Default to None
+    position = None
+
+    if goal == 'can':
+         if 'position' in scene_objects['can']:
+            position = scene_objects['can']['position']
+    elif goal in regions.keys():
+        position = regions[goal]['center']
+    else:
+        print("ERROR: Unknown goal: {}".format(goal))
+        
+    return position
+
+
+def get_claw_position(scene_objects, front=False):
+    position = None
+
+    if front:
+        name = 'claw_front'
+    else:
+        name = 'claw_center'
+
+    if 'position' in scene_objects[name]:
+        position = scene_objects[name]['position']
+
+    return position
+
+
+def get_claw_angle(scene_objects, front=True):
+    angle = None
+
+    if front:
+        name = 'claw_front'
+    else:
+        name = 'claw_center'
+
+    if 'angle' in scene_objects[name]:
+        angle = scene_objects[name]['angle']
+
+    return angle
+
+
+def is_claw_in_region(claw_position, region):
+    x = claw_position[0]
+    y = claw_position[1]
+
+    if x > region['top_left'][0] and \
+        x < region['top_right'][0] and \
+        y > region['top_left'][1] and \
+        y < region['bottom_left'][1]:
+        return True
+    else:
+        return False
+
+
+def get_claw_region(claw_position, regions):
+    for _, region in regions.items():
+        result = is_claw_in_region(claw_position, region)
+        if result:
+            return region['name']
+
+    return None
+
+
+def get_current_goal(current_region, verbose=False):
+    query = "target({0:}, X)".format(current_region)
+    if verbose:
+        print(query)
+
+    result = list(prolog.query(query))
+
+    if verbose:
+        print(result)
+
+    if len(result) > 0:
+        return result[0]['X']
+    else:
+        return None
+
+
 def main_vision(host, port, calibration_file):
+    global scene_objects
+
     length = 0.04 # length of marker side
     count = 0
-    max_count = 10
+    max_count = 5
+
+    # Flags used to assist in debug
     show_frame = True
-    move_robot = False
-    use_video = False
-    save_frame = True
+    move_robot = True
+    use_video = True
+    save_frame = False
+
+    # Instantiate local variables
+    start = True
+    state = None
+    regions = {}
+    current_region = None
+    goal = None
+
+    # axisPoints allow for drawing axis vectors
+    axisPoints = np.array([[0,0,0],[length,0,0],[0,length,0],[0,0,length]])
 
     if move_robot:
         # get socket for claw robot server connection
@@ -698,73 +892,88 @@ def main_vision(host, port, calibration_file):
     dictionary = aruco.getPredefinedDictionary(aruco.DICT_ARUCO_ORIGINAL)
 
     print('Setting up video capture device')
-    cap = setup_video_capture_device(device_id=0)
+    cap = setup_video_capture_device(device_id=1)
 
-    axisPoints = np.array([[0,0,0],[length,0,0],[0,length,0],[0,0,length]])
-
+    # use a named window in normal mode allowing resizing
     cv2.namedWindow('frame', cv2.WINDOW_NORMAL)
 
     try:
         while cap.isOpened():
+            # Capture the video frame from the camera
             flags, frame = cap.read()
-            frame_to_save = deepcopy(frame)
 
+            # Copy the raw frame to save for later (only if you specify the save_frame flag)
+            if save_frame:
+                frame_to_save = deepcopy(frame)
+
+            # Read a static test image if use_video is false
             if not use_video:
                 frame = cv2.imread('good_sample.png')
 
+            # Detect the ArUco markers
             corners, ids, rejectedImgPoints = aruco.detectMarkers(frame, dictionary)
 
+            # if there are markers detected, process them
             if len(corners)>0:
                 # print('Detected markers')
                 
                 centers_calc = find_all_centers(corners)
-                # draw_centers(frame, centers_calc)
 
-                # aruco.drawDetectedMarkers(frame, corners, ids)
-                
                 rvecs, tvecs, obj_points = aruco.estimatePoseSingleMarkers(corners, length, cameraMatrix, distCoeffs)
                 
-                centers = []
-                fronts = []
-                for rvec, tvec in zip(rvecs, tvecs):
-                    # aruco.drawAxis(frame, cameraMatrix, distCoeffs, rvec, tvec, length)
-                    
-                    # Populate object locations
-                    imgPoints, ret = cv2.projectPoints(axisPoints, rvec, tvec, cameraMatrix, distCoeffs)
+                (centers, fronts) = get_centers_and_fronts(rvecs, tvecs, axisPoints, cameraMatrix, distCoeffs)
 
-                    centers.append([imgPoints[0][0][0],imgPoints[0][0][1]])
-                    fronts.append([imgPoints[1][0][0],imgPoints[1][0][1]])
-                
                 draw_vectors(frame, centers_calc, centers, fronts)
 
-                for id, center, front in zip(ids, centers, fronts):
-                    for (key, obj) in scene_objects.items():
-                        if 'id' in obj.keys() and id == obj['id']:
-                            obj = update_obj(obj, center, front)
-                        elif 'markers' in obj.keys():
-                            for marker in obj['markers']:
-                                if id == marker['id']:
-                                    marker = update_obj(marker, center, front)
+                scene_objects = update_scene_objects(scene_objects, ids, centers, fronts)
 
-            # print all objects ID/POSITION/ANGLE
-            # for (key, obj) in scene_objects.items():
-            #     print_object_info(obj)
-
-            # print(10*'-')
-            claw_to_can_angle = get_claw_to_can_angle(frame, scene_objects, verbose=False)
-            # print(10*'-')
-            claw_to_can_distance = get_claw_to_can_distance(scene_objects, verbose=False)
-            # print(10*'-')
-            # print()
-
-            regions = get_regions(scene_objects)
+            # Get Regions (these shouldn't change)
+            regions = get_regions(scene_objects, regions)
             draw_scene_regions(frame, regions)
+
+            # Get claw position and angle
+            if goal == 'can':
+                claw_position = get_claw_position(scene_objects, front=True)
+            else:
+                claw_position = get_claw_position(scene_objects, front=False)
+
+            claw_angle = get_claw_angle(scene_objects)
+
+            # Get the current region of the claw
+            if claw_position is not None:
+                current_region = get_claw_region(claw_position, regions)
+
+            print('Current Region: {}'.format(current_region))
+            print('Current State: {}'.format(state))
+
+            # Get goal, only want to update based on "stop" state
+            if (start or state == 'stop') and current_region is not None:
+                print('updating goal')
+                print('old goal: {}'.format(goal))
+                goal = get_current_goal(current_region)
+                print('new goal: {}'.format(goal))
+            
+            print('Current Goal: {}'.format(goal))
+            
+            # Get goal position
+            goal_position = get_goal_position(goal, scene_objects, regions)
+
+            if claw_position is not None and goal_position is not None:
+                draw_line(frame, claw_position, goal_position, (255,0,255))
+
+            # Get distance to the goal
+            goal_distance = get_claw_to_goal_distance(claw_position, goal_position, verbose=False)
+
+            # Get angle to the goal
+            goal_angle = get_claw_to_goal_angle(claw_position, claw_angle, goal_position, verbose=False)
 
             if count > max_count:
                 count = 0
                 
-                if not np.isnan(claw_to_can_angle):
-                    update_claw(claw_to_can_distance, claw_to_can_angle, mySocket, move_robot=move_robot)
+                if goal_angle is not None and goal_distance is not None:
+                    state = update_claw(goal_distance, goal_angle, mySocket, move_robot=move_robot)
+
+                    print(state)
 
                 time.sleep(1)
             else:
@@ -779,6 +988,9 @@ def main_vision(host, port, calibration_file):
                 
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
+
+            if start and current_region is not None: 
+                start = False
 
     except KeyboardInterrupt:
         print('You cancelled the operation.')

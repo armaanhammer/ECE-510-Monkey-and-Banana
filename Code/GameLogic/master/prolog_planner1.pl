@@ -9,20 +9,37 @@
 */
 
 
-stop_and_close(Claw_to_can_theta, Claw_to_can_distance, Max_angle, Min_angle, Max_distance) :-
-			(Claw_to_can_theta > Max_angle; Claw_to_can_theta < Min_angle),
-			Claw_to_can_distance < Max_distance.
+/* stop(Claw_to_goal_theta, Claw_to_goal_distance, Max_angle, Min_angle, Max_distance) :-
+ *			(Claw_to_goal_theta > Max_angle; Claw_to_goal_theta < Min_angle),
+ *			Claw_to_goal_distance < Max_distance.
+ */
 
-move_forward_and_open(Claw_to_can_theta, Claw_to_can_distance, Max_angle, Min_angle, Max_distance) :-
-			(Claw_to_can_theta > Max_angle; Claw_to_can_theta < Min_angle),
-			Claw_to_can_distance > Max_distance.
+stop(Claw_to_goal_distance, Max_distance) :-
+			Claw_to_goal_distance < Max_distance.
 
-can_move_left(Claw_to_can, Threshold_angle) :-
-			Claw_to_can > Threshold_angle.
+forward(Claw_to_goal_theta, Claw_to_goal_distance, Max_angle, Min_angle, Max_distance) :-
+			(Claw_to_goal_theta > Max_angle; Claw_to_goal_theta < Min_angle),
+			Claw_to_goal_distance > Max_distance.
+
+left(Claw_to_goal_theta, Threshold_angle) :-
+			Claw_to_goal_theta > Threshold_angle.
+
+/* rule format:
+* 	target(Position, Target).
+*/
+target(center, can).
+target(bottom_center, can).
+target(bottom_left, bottom_center).
+target(bottom_right, bottom_center).
+target(center_left, bottom_left).
+target(center_right, bottom_right).
+target(top_left, center_left).
+target(top_right, center_right).
+target(top_center, top_left).			
 			
 /*
 Sample query: Can we move forward for theta = 356 and distance = 76?
-			 ?- move_forward_and_open(356, 76).
+			 ?- forward(356, 76).
 			 true.
 
 */
