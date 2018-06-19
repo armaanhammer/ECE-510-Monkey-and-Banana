@@ -25,7 +25,7 @@ TOP_LEFT_RAMP_ID = 58
 BOTTOM_RIGHT_RAMP_ID = 209
 BOTTOM_LEFT_RAMP_ID = 839
 
-TOP_RIGHT_SCENE_ID = 205
+TOP_RIGHT_SCENE_ID = 420
 TOP_LEFT_SCENE_ID = 800
 BOTTOM_RIGHT_SCENE_ID = 450
 BOTTOM_LEFT_SCENE_ID = 630
@@ -317,13 +317,15 @@ def update_claw(claw_to_goal_distance, claw_to_goal_angle, mySocket, goal, move_
 
     if win:
         if move_robot:
+            send_command(mySocket, 'forward')
             send_command(mySocket, 'close')
-        return 'close'
+            send_command(mySocket, 'stop')
+        return 'stop'
 
     angle_buffer = 10
 
     if goal == 'can':
-        max_distance = 75
+        max_distance = 70
     else:
         max_distance = 25
 
@@ -401,16 +403,20 @@ def update_claw(claw_to_goal_distance, claw_to_goal_angle, mySocket, goal, move_
                     delay = "0.15"
                 else:
                     delay = "0.1"
-            
 
         power = "50"
+
+        if command == 'stop':
+            delay = "0.0"
+            power = "0"            
+
         full_command = command + " " + delay + " " + power
         send_command(mySocket, full_command)
 
     return command
 
 
-def setup_video_capture_device(device_id=1):
+def setup_video_capture_device(device_id=0):
     # setup camera capture
     cap = cv2.VideoCapture(device_id)
 
@@ -933,7 +939,7 @@ def main_vision(host, port, calibration_file):
     dictionary = aruco.getPredefinedDictionary(aruco.DICT_ARUCO_ORIGINAL)
 
     print('Setting up video capture device')
-    cap = setup_video_capture_device(device_id=1)
+    cap = setup_video_capture_device(device_id=0)
 
     # use a named window in normal mode allowing resizing
     cv2.namedWindow('frame', cv2.WINDOW_NORMAL)
@@ -1020,7 +1026,6 @@ def main_vision(host, port, calibration_file):
                 if goal == 'can' and state == 'stop': 
                     win = True
                     print('We win!!!')
-
                 
                 if start and current_region is not None: 
                     start = False
