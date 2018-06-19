@@ -25,7 +25,8 @@ def get_args():
 def initialize_clawrobot():
     my_clawrobot = ClawRobot(motors1_port='JC', motors2_port='JB', servos_port='JAB')
     my_clawrobot.stop()
-    
+    #delay = 0.1
+    #power = 75
     return my_clawrobot
 
 
