@@ -446,7 +446,17 @@ def draw_line(frame, pt1, pt2, color):
     pt1_pxs = tuple([int(x) for x in pt1])
     pt2_pxs = tuple([int(x) for x in pt2])
 
-    cv2.line(frame, pt1_pxs, pt2_pxs, color, thickness=thickness, lineType=line, shift=0)
+    if pt1_pxs[0] > 2000 or \
+            pt1_pxs[1] > 2000 or \
+            pt1_pxs[0] < 0 or \
+            pt1_pxs[1] < 0 or \
+            pt2_pxs[0] > 2000 or \
+            pt2_pxs[1] > 2000 or \
+            pt2_pxs[0] < 0 or \
+            pt2_pxs[1] < 0:
+        pass
+    else:
+        cv2.line(frame, pt1_pxs, pt2_pxs, color, thickness=thickness, lineType=line, shift=0)
 
 
 def draw_box(frame, corners, color):
